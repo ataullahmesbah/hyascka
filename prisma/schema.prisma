@@ -1,0 +1,370 @@
+// HYASCKA — Prisma Schema
+// Enterprise-grade schema supporting auth, CMS, CRM, and future expansion.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────
+// Enums
+// ─────────────────────────────────────
+
+enum RoleName {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
+  CLIENT
+  USER
+  GUEST
+}
+
+enum ProjectStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+}
+
+enum ContactStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  ARCHIVED
+}
+
+enum ProviderType {
+  CREDENTIALS
+  GOOGLE
+  GITHUB
+}
+
+// ─────────────────────────────────────
+// Auth — Role
+// ─────────────────────────────────────
+
+model Role {
+  id        String     @id @default(cuid())
+  name      RoleName   @unique
+  users     User[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+// ─────────────────────────────────────
+// Auth — User
+// ─────────────────────────────────────
+
+model User {
+  id                String             @id @default(cuid())
+  name              String?
+  email             String             @unique
+  emailVerified     DateTime?
+  password          String?
+  image             String?
+  bio               String?
+  roleId            String
+  role              Role               @relation(fields: [roleId], references: [id])
+  accounts          Account[]
+  sessions          Session[]
+  verificationToken VerificationToken?
+  resetTokens       PasswordResetToken[]
+  contactSubmissions Contact[]
+  blogPosts         Blog[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([roleId])
+}
+
+// ─────────────────────────────────────
+// Auth — Account (OAuth)
+// ─────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────
+// Auth — Session
+// ─────────────────────────────────────
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────
+// Auth — Verification Token
+// ─────────────────────────────────────
+
+model VerificationToken {
+  id      String    @id @default(cuid())
+  identifier String
+  token   String    @unique
+  expires DateTime
+  userId  String?   @unique
+  user    User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([identifier])
+}
+
+// ─────────────────────────────────────
+// Auth — Password Reset Token
+// ─────────────────────────────────────
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  used      Boolean  @default(false)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+// ─────────────────────────────────────
+// CMS — Category
+// ─────────────────────────────────────
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  description String?
+  blogs     Blog[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────
+// CMS — Tag
+// ─────────────────────────────────────
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  blogs     Blog[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────
+// CMS — Blog
+// ─────────────────────────────────────
+
+model Blog {
+  id          String      @id @default(cuid())
+  title       String
+  slug        String      @unique
+  excerpt     String?
+  content     String?
+  featuredImage String?
+  status      BlogStatus  @default(DRAFT)
+  readingTime Int         @default(5)
+  authorId    String?
+  author      User?       @relation(fields: [authorId], references: [id])
+  categoryId  String?
+  category    Category?   @relation(fields: [categoryId], references: [id])
+  tags        Tag[]
+  publishedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([authorId])
+}
+
+// ─────────────────────────────────────
+// CMS — Technology
+// ─────────────────────────────────────
+
+model Technology {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  slug        String      @unique
+  description String?
+  icon        String?
+  category    String?
+  projects    Project[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+// ─────────────────────────────────────
+// CMS — Service
+// ─────────────────────────────────────
+
+model Service {
+  id          String   @id @default(cuid())
+  title       String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  features    String[]
+  order       Int      @default(0)
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─────────────────────────────────────
+// CMS — Project / Portfolio
+// ─────────────────────────────────────
+
+model Project {
+  id          String         @id @default(cuid())
+  title       String
+  slug        String         @unique
+  category    String
+  overview    String?
+  challenge   String?
+  solution    String?
+  outcome     String?
+  image       String?
+  gallery     String[]
+  techStack   String[]
+  metrics     String?
+  status      ProjectStatus  @default(COMPLETED)
+  featured    Boolean        @default(false)
+  technologies Technology[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([status])
+  @@index([category])
+}
+
+// ─────────────────────────────────────
+// CMS — Portfolio (alias to Project for API flexibility)
+// ─────────────────────────────────────
+
+// Portfolio is represented by the Project model with featured = true.
+// This keeps the schema DRY while allowing distinct API endpoints.
+
+// ─────────────────────────────────────
+// CRM — Contact
+// ─────────────────────────────────────
+
+model Contact {
+  id        String        @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  company   String?
+  service   String?
+  budget    String?
+  message   String
+  status    ContactStatus @default(NEW)
+  userId    String?
+  user      User?         @relation(fields: [userId], references: [id])
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([status])
+  @@index([email])
+}
+
+// ─────────────────────────────────────
+// Newsletter
+// ─────────────────────────────────────
+
+model Newsletter {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// ─────────────────────────────────────
+// CMS — FAQ
+// ─────────────────────────────────────
+
+model FAQ {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────
+// CMS — Testimonial
+// ─────────────────────────────────────
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  quote     String
+  name      String
+  position  String
+  company   String?
+  initials  String
+  rating    Int      @default(5)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────
+// Settings — Site Settings
+// ─────────────────────────────────────
+
+model SiteSettings {
+  id              String   @id @default(cuid())
+  siteName        String   @default("HYASCKA")
+  siteUrl         String?
+  logo            String?
+  favicon         String?
+  description     String?
+  email           String?
+  phone           String?
+  address         String?
+  socialLinks     Json?
+  seoTitle        String?
+  seoDescription  String?
+  seoKeywords     String?
+  analyticsId     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
