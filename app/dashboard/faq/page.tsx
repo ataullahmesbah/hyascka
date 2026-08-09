@@ -100,7 +100,7 @@ export default function FAQPage() {
     return (
       <div className="space-y-6">
         <PageHeader title="FAQ Management" description="Manage frequently asked questions." />
-        <div className="space-y-3">{[0, 1, 2].map((i) => <Card key={i}><CardContent className="h-16 animate-pulse rounded-lg bg-muted" /></CardContent></Card>)}</div>
+        <div className="space-y-3">{[0, 1, 2].map((i) => <Card key={i}><CardContent className="h-16 animate-pulse rounded-lg bg-muted" /></Card>)}</div>
       </div>
     );
   }

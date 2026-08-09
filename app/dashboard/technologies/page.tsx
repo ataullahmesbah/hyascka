@@ -99,7 +99,7 @@ export default function TechnologiesPage() {
     return (
       <div className="space-y-6">
         <PageHeader title="Technologies" description="Manage the technologies showcased on your website." />
-        <div className="grid gap-4 sm:grid-cols-4">{[0, 1, 2, 3].map((i) => <Card key={i}><CardContent className="h-24 animate-pulse rounded-lg bg-muted" /></CardContent></Card>)}</div>
+        <div className="grid gap-4 sm:grid-cols-4">{[0, 1, 2, 3].map((i) => <Card key={i}><CardContent className="h-24 animate-pulse rounded-lg bg-muted" /></Card>)}</div>
       </div>
     );
   }

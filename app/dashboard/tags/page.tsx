@@ -78,7 +78,7 @@ export default function TagsPage() {
     return (
       <div className="space-y-6">
         <PageHeader title="Tags" description="Manage tags for blog posts." />
-        <Card><CardContent className="h-32 animate-pulse rounded-lg bg-muted" /></CardContent>
+        <Card><CardContent className="h-32 animate-pulse rounded-lg bg-muted" /></Card>
       </div>
     );
   }

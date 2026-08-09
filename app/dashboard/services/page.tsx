@@ -104,7 +104,7 @@ export default function ServicesPage() {
       <div className="space-y-6">
         <PageHeader title="Services" description="Manage the services displayed on your website." />
         <div className="grid gap-4 sm:grid-cols-3">
-          {[0, 1, 2].map((i) => <Card key={i}><CardContent className="h-32 animate-pulse rounded-lg bg-muted" /></CardContent></Card>)}
+          {[0, 1, 2].map((i) => <Card key={i}><CardContent className="h-32 animate-pulse rounded-lg bg-muted" /></Card>)}
         </div>
       </div>
     );

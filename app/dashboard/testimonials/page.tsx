@@ -107,7 +107,7 @@ export default function TestimonialsPage() {
     return (
       <div className="space-y-6">
         <PageHeader title="Testimonials" description="Manage client testimonials shown on your website." />
-        <div className="grid gap-4 sm:grid-cols-2">{[0, 1].map((i) => <Card key={i}><CardContent className="h-40 animate-pulse rounded-lg bg-muted" /></CardContent></Card>)}</div>
+        <div className="grid gap-4 sm:grid-cols-2">{[0, 1].map((i) => <Card key={i}><CardContent className="h-40 animate-pulse rounded-lg bg-muted" /></Card>)}</div>
       </div>
     );
   }

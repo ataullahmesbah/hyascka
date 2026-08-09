@@ -1,5 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -8,6 +9,7 @@ import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/sections/footer';
 import { LoadingScreen } from '@/components/loading-screen';
 import { BackToTop } from '@/components/back-to-top';
+import { AuthNotice } from '@/components/auth/auth-notice';
 
 const sans = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
 const display = Space_Grotesk({
@@ -17,7 +19,7 @@ const display = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://hyaska.com'),
+  metadataBase: new URL('https://hyascka.com'),
   title: 'HYASCKA — AI-First Digital Solutions Company',
   description:
     'HYASCKA builds AI agents, intelligent automation, enterprise software, and high-performance digital experiences for startups and enterprises.',
@@ -73,6 +75,9 @@ export default function RootLayout({
             <main className="min-h-screen">{children}</main>
             <Footer />
             <BackToTop />
+            <Suspense fallback={null}>
+              <AuthNotice />
+            </Suspense>
             <Toaster
               position="top-center"
               theme="system"

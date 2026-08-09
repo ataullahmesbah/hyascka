@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ArrowUpRight, Github, Linkedin, Facebook, Mail, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,8 +45,11 @@ const socials = [
 ];
 
 export function Footer() {
+  const pathname = usePathname();
   const [email, setEmail] = React.useState('');
   const [subscribed, setSubscribed] = React.useState(false);
+
+  if (pathname?.startsWith('/dashboard')) return null;
 
   function handleSubscribe(e: React.FormEvent) {
     e.preventDefault();

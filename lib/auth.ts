@@ -93,6 +93,19 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
+    // Guards the OAuth (Google/GitHub) redirect flow, which — unlike the
+    // credentials flow (redirect: false + manual router.push) — is handled
+    // entirely by NextAuth. Only same-origin relative or absolute URLs are
+    // ever followed; anything else falls back to baseUrl.
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith('/')) return `${baseUrl}${url}`;
+      try {
+        if (new URL(url).origin === baseUrl) return url;
+      } catch {
+        // fall through to baseUrl
+      }
+      return baseUrl;
+    },
   },
   cookies: {
     sessionToken: {

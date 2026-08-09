@@ -97,7 +97,7 @@ export default function CategoriesPage() {
     return (
       <div className="space-y-6">
         <PageHeader title="Categories" description="Organize blog posts into categories." />
-        <div className="grid gap-4 sm:grid-cols-3">{[0, 1, 2].map((i) => <Card key={i}><CardContent className="h-24 animate-pulse rounded-lg bg-muted" /></CardContent></Card>)}</div>
+        <div className="grid gap-4 sm:grid-cols-3">{[0, 1, 2].map((i) => <Card key={i}><CardContent className="h-24 animate-pulse rounded-lg bg-muted" /></Card>)}</div>
       </div>
     );
   }
