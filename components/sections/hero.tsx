@@ -3,37 +3,29 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, Play, Sparkles } from 'lucide-react';
-import {
-  User,
-  Bot,
-  Workflow,
-  Database,
-  FileBarChart,
-  LineChart,
-  CheckCircle2,
-} from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GradientOrbs } from '@/components/gradient-orbs';
+import { services } from '@/constants/services';
 
-const flow = [
-  { icon: User, label: 'Customer', sub: 'Inquiry received' },
-  { icon: Bot, label: 'AI Agent', sub: 'Understands intent' },
-  { icon: Workflow, label: 'Automation', sub: 'Routes workflow' },
-  { icon: Database, label: 'CRM', sub: 'Updates record' },
-  { icon: FileBarChart, label: 'Reports', sub: 'Generates summary' },
-  { icon: LineChart, label: 'Analytics', sub: 'Tracks metrics' },
-  { icon: CheckCircle2, label: 'Success', sub: 'Task completed' },
+// The four flagship offerings, pulled straight from the real services data
+// so this panel never drifts out of sync with /services.
+const capabilities = services.slice(0, 4);
+
+const proof = [
+  { value: '120+', label: 'AI systems shipped' },
+  { value: '94%', label: 'Avg. task automation rate' },
+  { value: '24/7', label: 'Systems running in production' },
 ];
 
 export function Hero() {
   return (
     <section id="top" className="relative overflow-hidden pt-28 sm:pt-32 lg:pt-36">
-      <GradientOrbs />
-      <div className="absolute inset-0 bg-grid mask-fade-b opacity-50" aria-hidden />
+      <GradientOrbs className="opacity-70" />
+      <div className="absolute inset-0 bg-grid mask-fade-b opacity-40" aria-hidden />
 
-      <div className="relative mx-auto grid max-w-[1280px] grid-cols-1 items-center gap-12 px-5 pb-24 tab:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8 lg:px-12 lg:pb-32">
-        <div className="flex flex-col items-start gap-6 lg:pr-4">
+      <div className="relative mx-auto grid max-w-[1280px] grid-cols-1 items-start gap-14 px-5 pb-24 tab:px-8 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10 lg:px-12 lg:pb-32">
+        <div className="flex flex-col items-start gap-7 lg:pr-4 lg:pt-4">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -41,19 +33,17 @@ export function Hero() {
             className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"
           >
             <Sparkles className="h-3.5 w-3.5 text-primary" />
-            AI-Powered Digital Solutions
+            AI Development &amp; Automation Agency
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.06, ease: [0.21, 0.47, 0.32, 0.98] }}
-            className="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance sm:text-5xl lg:text-[4rem] lg:leading-[1.03]"
+            className="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance sm:text-5xl lg:text-[3.75rem] lg:leading-[1.04]"
           >
-            Building Intelligent AI Systems
-            <br />
-            for{' '}
-            <span className="text-gradient-primary">Modern Businesses</span>
+            We Build the AI Systems{' '}
+            <span className="text-gradient-primary">Your Business Runs On</span>
           </motion.h1>
 
           <motion.p
@@ -62,9 +52,9 @@ export function Hero() {
             transition={{ duration: 0.7, delay: 0.14, ease: [0.21, 0.47, 0.32, 0.98] }}
             className="max-w-xl text-lg leading-relaxed text-muted-foreground text-pretty"
           >
-            HYASCKA helps startups, enterprises, and growing businesses build AI agents,
-            intelligent automation, enterprise software, and high-performance digital
-            experiences.
+            HYASCKA is a full-stack AI agency. We design, build, and ship AI agents,
+            automation, and enterprise software — production systems that cut manual
+            work, respond to customers instantly, and scale with your business.
           </motion.p>
 
           <motion.div
@@ -75,7 +65,7 @@ export function Hero() {
           >
             <Button asChild size="lg" className="group h-12 gap-2 rounded-btn px-6 text-base">
               <Link href="/contact">
-                Book Consultation
+                Book a Strategy Call
                 <ArrowRight className="h-4.5 w-4.5 transition-transform group-hover:translate-x-1" />
               </Link>
             </Button>
@@ -85,9 +75,9 @@ export function Hero() {
               variant="outline"
               className="h-12 gap-2 rounded-btn px-6 text-base bg-background/40 backdrop-blur-sm"
             >
-              <Link href="/services">
-                <Play className="h-4 w-4" />
-                Explore Services
+              <Link href="/portfolio">
+                See Our Work
+                <ArrowUpRight className="h-4 w-4" />
               </Link>
             </Button>
           </motion.div>
@@ -96,24 +86,22 @@ export function Hero() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground"
+            className="mt-2 grid w-full grid-cols-3 gap-4 border-t border-border/60 pt-6 sm:max-w-md"
           >
-            <span className="inline-flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-success" />
-              120+ systems shipped
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              Global remote team
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-              Production-grade AI
-            </span>
+            {proof.map((p) => (
+              <div key={p.label}>
+                <div className="font-display text-xl font-semibold tracking-tight sm:text-2xl">
+                  {p.value}
+                </div>
+                <div className="mt-1 text-xs leading-snug text-muted-foreground">
+                  {p.label}
+                </div>
+              </div>
+            ))}
           </motion.div>
         </div>
 
-        <HeroDashboard />
+        <CapabilityPanel />
       </div>
 
       <ScrollIndicator />
@@ -121,150 +109,67 @@ export function Hero() {
   );
 }
 
-function HeroDashboard() {
-  const [activeStep, setActiveStep] = React.useState(0);
-
-  React.useEffect(() => {
-    const id = setInterval(() => {
-      setActiveStep((s) => (s + 1) % flow.length);
-    }, 1400);
-    return () => clearInterval(id);
-  }, []);
-
+/**
+ * The hero's signature element: instead of an abstract animated demo, this
+ * states plainly — in the visitor's first five seconds — exactly what
+ * HYASCKA builds and what each thing does for the business hiring us.
+ * Sourced directly from the real services list so it can't drift out of
+ * sync with /services.
+ */
+function CapabilityPanel() {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.92 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.9, delay: 0.2, ease: [0.21, 0.47, 0.32, 0.98] }}
-      className="relative mx-auto w-full max-w-md lg:max-w-none"
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, delay: 0.2, ease: [0.21, 0.47, 0.32, 0.98] }}
+      className="relative mx-auto w-full max-w-md lg:sticky lg:top-28 lg:max-w-none"
     >
-      {/* floating glow chips */}
-      <FloatingChip
-        className="left-[-6%] top-[8%]"
-        delay={0.7}
-        value="72%"
-        label="auto-resolution"
-      />
-      <FloatingChip
-        className="right-[-4%] top-[55%]"
-        delay={1}
-        value="<2s"
-        label="response time"
-      />
-
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-soft-lg sm:p-6">
-        <div className="pointer-events-none absolute inset-0 bg-grid opacity-15" />
-
-        {/* window header */}
-        <div className="relative mb-4 flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-destructive/40" />
-          <span className="h-2.5 w-2.5 rounded-full bg-chart-4/50" />
-          <span className="h-2.5 w-2.5 rounded-full bg-success/50" />
-          <span className="ml-2 font-display text-xs font-semibold text-muted-foreground">
-            AI Workflow Pipeline
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-2 shadow-soft-lg">
+        <div className="flex items-center justify-between px-3.5 pb-2 pt-2.5">
+          <span className="font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            What We Build
           </span>
-          <span className="ml-auto flex items-center gap-1.5 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
+          <span className="flex items-center gap-1.5 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
             <span className="h-1 w-1 rounded-full bg-success animate-pulse" />
-            Live
+            In production today
           </span>
         </div>
 
-        {/* flow steps */}
-        <div className="relative flex flex-col gap-2.5">
-          {flow.map((step, i) => {
-            const isActive = i === activeStep;
-            const isDone = i < activeStep;
-            return (
-              <motion.div
-                key={step.label}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 + i * 0.08 }}
-                className={`relative flex items-center gap-3 rounded-xl border p-3 transition-all duration-300 ${
-                  isActive
-                    ? 'border-primary/50 bg-primary/8 shadow-glow-primary'
-                    : isDone
-                      ? 'border-success/30 bg-success/5'
-                      : 'border-border/60 bg-background/40'
-                }`}
+        <div className="flex flex-col gap-1.5 p-1.5">
+          {capabilities.map((cap, i) => (
+            <motion.div
+              key={cap.title}
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.35 + i * 0.09, duration: 0.5 }}
+              className="group relative flex items-start gap-3.5 overflow-hidden rounded-xl border border-border/60 bg-background/40 p-3.5 transition-colors hover:border-border hover:bg-background/70"
+            >
+              <span
+                className={`absolute inset-y-2 left-0 w-[3px] rounded-full bg-gradient-to-b ${cap.accent}`}
+                aria-hidden
+              />
+              <div
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-btn bg-gradient-to-br ${cap.accent} text-primary-foreground`}
               >
-                <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-btn transition-colors ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : isDone
-                        ? 'bg-success/15 text-success'
-                        : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  <step.icon className="h-4.5 w-4.5" />
+                <cap.icon className="h-4.5 w-4.5" />
+              </div>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <div className="font-display text-sm font-semibold">{cap.title}</div>
+                <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  {cap.description}
                 </div>
-                <div className="flex-1">
-                  <div className="font-display text-sm font-semibold">{step.label}</div>
-                  <div className="text-xs text-muted-foreground">{step.sub}</div>
-                </div>
-                {isDone && <CheckCircle2 className="h-4 w-4 text-success" />}
-                {isActive && (
-                  <motion.span
-                    animate={{ opacity: [1, 0.3, 1] }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                    className="h-2 w-2 rounded-full bg-primary"
-                  />
-                )}
-                {i < flow.length - 1 && (
-                  <span className="absolute left-[26px] -bottom-[10px] h-2.5 w-px bg-border" />
-                )}
-              </motion.div>
-            );
-          })}
+              </div>
+            </motion.div>
+          ))}
         </div>
 
-        {/* bottom metrics */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="relative mt-4 grid grid-cols-3 gap-2 border-t border-border/60 pt-3"
+        <Link
+          href="/services"
+          className="group flex items-center justify-between border-t border-border/60 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:text-primary"
         >
-          <MiniStat value="847" label="Processed" />
-          <MiniStat value="94%" label="Accuracy" />
-          <MiniStat value="24/7" label="Active" />
-        </motion.div>
-      </div>
-    </motion.div>
-  );
-}
-
-function MiniStat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="text-center">
-      <div className="font-display text-sm font-semibold text-gradient-primary">{value}</div>
-      <div className="text-[10px] text-muted-foreground">{label}</div>
-    </div>
-  );
-}
-
-function FloatingChip({
-  className,
-  value,
-  label,
-  delay = 0,
-}: {
-  className?: string;
-  value: string;
-  label: string;
-  delay?: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.6, delay }}
-      className={`absolute z-10 ${className}`}
-    >
-      <div className="animate-float-slow rounded-btn border border-border bg-background/80 px-3.5 py-2 backdrop-blur-md">
-        <div className="font-display text-lg font-semibold leading-none">{value}</div>
-        <div className="mt-1 text-[11px] text-muted-foreground">{label}</div>
+          Explore all services
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+        </Link>
       </div>
     </motion.div>
   );

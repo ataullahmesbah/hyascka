@@ -7,9 +7,11 @@ import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { UserMenu } from '@/components/auth/user-menu';
 import { cn } from '@/lib/utils';
 import { navLinks } from '@/constants/navigation';
-import { UserMenu } from './auth/user-menu';
+import { BrandLogo } from './brand-logo';
+
 
 export function Navbar() {
   const [scrolled, setScrolled] = React.useState(false);
@@ -49,8 +51,8 @@ export function Navbar() {
       >
         <nav className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-5 tab:px-8 lg:h-[4.5rem] lg:px-12">
           <Link href="/" className="group flex items-center gap-2.5" aria-label="HYASCKA home">
-            <Logo />
-            <span className="font-display text-lg font-semibold tracking-tight">HYASCKA</span>
+            <BrandLogo className="rounded-btn" />
+
           </Link>
 
           <ul className="hidden items-center gap-1 lg:flex">
@@ -159,23 +161,5 @@ export function Navbar() {
         )}
       </AnimatePresence>
     </>
-  );
-}
-
-function Logo() {
-  return (
-    <span className="relative inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-btn bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-soft">
-      <span className="absolute inset-0 bg-grid-sm opacity-30" />
-      <svg viewBox="0 0 24 24" className="relative h-5 w-5" fill="none" aria-hidden>
-        <path
-          d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          opacity="0.55"
-        />
-        <circle cx="12" cy="12" r="3.4" fill="currentColor" />
-      </svg>
-    </span>
   );
 }

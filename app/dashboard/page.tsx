@@ -121,12 +121,12 @@ export default function DashboardHomePage() {
   const roleLabel = userRole.replace('_', ' ').toLowerCase();
 
   const { data: dashboardData, loading, error, refetch } = useDashboardData<DashboardStats>('/api/dashboard/stats');
+  const trafficData = React.useMemo(() => generateTrafficData(), []);
 
   if (loading) return <DashboardSkeleton />;
   if (error || !dashboardData) return <ErrorState message="Failed to load dashboard data" onRetry={refetch} />;
 
   const { stats, recentUsers, recentBlogs, recentContacts } = dashboardData;
-  const trafficData = React.useMemo(() => generateTrafficData(), []);
 
   const visibleQuickActions = quickActions.filter((a) => a.roles.includes(userRole));
   const systemServices = [
