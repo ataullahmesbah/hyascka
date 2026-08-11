@@ -1,4 +1,6 @@
+// FILE: constants/dashboard-nav.ts
 import type { LucideIcon } from 'lucide-react';
+import type { Role } from '@/lib/permissions';
 import {
   LayoutDashboard,
   BarChart3,
@@ -28,7 +30,7 @@ import {
   LogOut,
 } from 'lucide-react';
 
-export type DashboardRole = 'SUPER_ADMIN' | 'ADMIN' | 'MODERATOR' | 'EDITOR' | 'CLIENT' | 'USER';
+export type DashboardRole = Role;
 
 export interface DashboardNavItem {
   label: string;

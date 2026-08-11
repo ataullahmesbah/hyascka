@@ -30,7 +30,7 @@ import { EmptyState } from '@/components/dashboard/empty-state';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { ErrorState } from '@/components/dashboard/error-state';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface Service {
@@ -45,7 +45,6 @@ interface Service {
 }
 
 export default function ServicesPage() {
-  const { toast } = useToast();
   const [editorOpen, setEditorOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Service | null>(null);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
@@ -66,7 +65,7 @@ export default function ServicesPage() {
 
   const handleSave = async () => {
     if (!formData.title.trim()) {
-      toast({ title: 'Title is required', variant: 'destructive' });
+      toast.error('Title is required');
       return;
     }
     try {
@@ -78,11 +77,11 @@ export default function ServicesPage() {
         body: JSON.stringify({ ...formData, slug: '', features: [] }),
       });
       if (!res.ok) throw new Error('Failed to save service');
-      toast({ title: editing ? 'Service updated' : 'Service created' });
+      toast.success(editing ? 'Service updated' : 'Service created');
       setEditorOpen(false);
       refetch();
     } catch {
-      toast({ title: 'Failed to save', variant: 'destructive' });
+      toast.error('Failed to save');
     }
   };
 
@@ -91,11 +90,11 @@ export default function ServicesPage() {
     try {
       const res = await fetch(`/api/dashboard/services/${deleteId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
-      toast({ title: 'Service deleted' });
+      toast.success('Service deleted');
       setDeleteId(null);
       refetch();
     } catch {
-      toast({ title: 'Failed to delete', variant: 'destructive' });
+      toast.error('Failed to delete');
     }
   };
 

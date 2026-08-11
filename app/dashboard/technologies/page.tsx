@@ -29,7 +29,7 @@ import { StatCard } from '@/components/dashboard/stat-card';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { ErrorState } from '@/components/dashboard/error-state';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface Tech {
   id: string;
@@ -41,7 +41,6 @@ interface Tech {
 }
 
 export default function TechnologiesPage() {
-  const { toast } = useToast();
   const [editorOpen, setEditorOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Tech | null>(null);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
@@ -62,7 +61,7 @@ export default function TechnologiesPage() {
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      toast({ title: 'Name is required', variant: 'destructive' });
+      toast.error('Name is required');
       return;
     }
     try {
@@ -74,11 +73,11 @@ export default function TechnologiesPage() {
         body: JSON.stringify({ ...formData, slug: '' }),
       });
       if (!res.ok) throw new Error('Failed to save');
-      toast({ title: editing ? 'Technology updated' : 'Technology created' });
+      toast.success(editing ? 'Technology updated' : 'Technology created');
       setEditorOpen(false);
       refetch();
     } catch {
-      toast({ title: 'Failed to save', variant: 'destructive' });
+      toast.error('Failed to save');
     }
   };
 
@@ -87,11 +86,11 @@ export default function TechnologiesPage() {
     try {
       const res = await fetch(`/api/dashboard/technologies/${deleteId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
-      toast({ title: 'Technology deleted' });
+      toast.success('Technology deleted');
       setDeleteId(null);
       refetch();
     } catch {
-      toast({ title: 'Failed to delete', variant: 'destructive' });
+      toast.error('Failed to delete');
     }
   };
 

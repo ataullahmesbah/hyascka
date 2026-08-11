@@ -30,7 +30,7 @@ import { StatCard } from '@/components/dashboard/stat-card';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { ErrorState } from '@/components/dashboard/error-state';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface FAQ {
@@ -42,7 +42,6 @@ interface FAQ {
 }
 
 export default function FAQPage() {
-  const { toast } = useToast();
   const [editorOpen, setEditorOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<FAQ | null>(null);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
@@ -63,7 +62,7 @@ export default function FAQPage() {
 
   const handleSave = async () => {
     if (!formData.question.trim() || !formData.answer.trim()) {
-      toast({ title: 'Question and answer are required', variant: 'destructive' });
+      toast.error('Question and answer are required');
       return;
     }
     try {
@@ -75,11 +74,11 @@ export default function FAQPage() {
         body: JSON.stringify(formData),
       });
       if (!res.ok) throw new Error('Failed to save');
-      toast({ title: editing ? 'FAQ updated' : 'FAQ created' });
+      toast.success(editing ? 'FAQ updated' : 'FAQ created');
       setEditorOpen(false);
       refetch();
     } catch {
-      toast({ title: 'Failed to save', variant: 'destructive' });
+      toast.error('Failed to save');
     }
   };
 
@@ -88,11 +87,11 @@ export default function FAQPage() {
     try {
       const res = await fetch(`/api/dashboard/faq/${deleteId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
-      toast({ title: 'FAQ deleted' });
+      toast.success('FAQ deleted');
       setDeleteId(null);
       refetch();
     } catch {
-      toast({ title: 'Failed to delete', variant: 'destructive' });
+      toast.error('Failed to delete');
     }
   };
 

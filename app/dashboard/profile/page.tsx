@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeletons';
@@ -30,7 +30,6 @@ interface ProfileData {
 
 export default function DashboardProfilePage() {
   const { data: session, update: updateSession } = useSession();
-  const { toast } = useToast();
   const { data: profile, loading, error, refetch } = useDashboardData<ProfileData>('/api/dashboard/profile');
 
   const [name, setName] = React.useState('');
@@ -73,9 +72,9 @@ export default function DashboardProfilePage() {
         user: { ...session?.user, name: updated.name, image: updated.image },
       });
       refetch();
-      toast({ title: 'Profile updated successfully' });
+      toast.success('Profile updated successfully');
     } catch (err) {
-      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to update profile', variant: 'destructive' });
+      toast.error(err instanceof Error ? err.message : 'Failed to update profile');
     } finally {
       setSavingProfile(false);
     }
@@ -94,9 +93,9 @@ export default function DashboardProfilePage() {
       if (!res.ok) throw new Error('Upload failed');
       const result = await res.json();
       setImage(result.url);
-      toast({ title: 'Image uploaded', description: 'Click Save Changes to apply.' });
+      toast.success('Image uploaded', { description: 'Click Save Changes to apply.' });
     } catch {
-      toast({ title: 'Upload failed', variant: 'destructive' });
+      toast.error('Upload failed');
     }
   };
 
@@ -115,9 +114,9 @@ export default function DashboardProfilePage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      toast({ title: 'Password changed successfully' });
+      toast.success('Password changed successfully');
     } catch (err) {
-      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to change password', variant: 'destructive' });
+      toast.error(err instanceof Error ? err.message : 'Failed to change password');
     } finally {
       setSavingPassword(false);
     }

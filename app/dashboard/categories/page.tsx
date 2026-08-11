@@ -28,7 +28,7 @@ import { StatCard } from '@/components/dashboard/stat-card';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { ErrorState } from '@/components/dashboard/error-state';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface Category {
   id: string;
@@ -39,7 +39,6 @@ interface Category {
 }
 
 export default function CategoriesPage() {
-  const { toast } = useToast();
   const [editorOpen, setEditorOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Category | null>(null);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
@@ -60,7 +59,7 @@ export default function CategoriesPage() {
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      toast({ title: 'Name is required', variant: 'destructive' });
+      toast.error('Name is required');
       return;
     }
     try {
@@ -72,11 +71,11 @@ export default function CategoriesPage() {
         body: JSON.stringify({ ...formData, slug: '' }),
       });
       if (!res.ok) throw new Error('Failed to save');
-      toast({ title: editing ? 'Category updated' : 'Category created' });
+      toast.success(editing ? 'Category updated' : 'Category created');
       setEditorOpen(false);
       refetch();
     } catch {
-      toast({ title: 'Failed to save', variant: 'destructive' });
+      toast.error('Failed to save');
     }
   };
 
@@ -85,11 +84,11 @@ export default function CategoriesPage() {
     try {
       const res = await fetch(`/api/dashboard/categories/${deleteId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
-      toast({ title: 'Category deleted' });
+      toast.success('Category deleted');
       setDeleteId(null);
       refetch();
     } catch {
-      toast({ title: 'Failed to delete', variant: 'destructive' });
+      toast.error('Failed to delete');
     }
   };
 

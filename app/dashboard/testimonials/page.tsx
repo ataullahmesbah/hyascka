@@ -31,7 +31,7 @@ import { StatCard } from '@/components/dashboard/stat-card';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { ErrorState } from '@/components/dashboard/error-state';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface Testimonial {
@@ -46,7 +46,6 @@ interface Testimonial {
 }
 
 export default function TestimonialsPage() {
-  const { toast } = useToast();
   const [editorOpen, setEditorOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Testimonial | null>(null);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
@@ -69,7 +68,7 @@ export default function TestimonialsPage() {
 
   const handleSave = async () => {
     if (!formData.quote.trim() || !formData.name.trim()) {
-      toast({ title: 'Quote and name are required', variant: 'destructive' });
+      toast.error('Quote and name are required');
       return;
     }
     const initials = formData.initials || formData.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
@@ -82,11 +81,11 @@ export default function TestimonialsPage() {
         body: JSON.stringify({ ...formData, initials }),
       });
       if (!res.ok) throw new Error('Failed to save');
-      toast({ title: editing ? 'Testimonial updated' : 'Testimonial created' });
+      toast.success(editing ? 'Testimonial updated' : 'Testimonial created');
       setEditorOpen(false);
       refetch();
     } catch {
-      toast({ title: 'Failed to save', variant: 'destructive' });
+      toast.error('Failed to save');
     }
   };
 
@@ -95,11 +94,11 @@ export default function TestimonialsPage() {
     try {
       const res = await fetch(`/api/dashboard/testimonials/${deleteId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
-      toast({ title: 'Testimonial deleted' });
+      toast.success('Testimonial deleted');
       setDeleteId(null);
       refetch();
     } catch {
-      toast({ title: 'Failed to delete', variant: 'destructive' });
+      toast.error('Failed to delete');
     }
   };
 

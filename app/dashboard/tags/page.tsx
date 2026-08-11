@@ -26,7 +26,7 @@ import { PageHeader } from '@/components/dashboard/page-header';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { ErrorState } from '@/components/dashboard/error-state';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface TagItem {
   id: string;
@@ -36,7 +36,6 @@ interface TagItem {
 }
 
 export default function TagsPage() {
-  const { toast } = useToast();
   const [editorOpen, setEditorOpen] = React.useState(false);
   const [formData, setFormData] = React.useState({ name: '' });
 
@@ -44,7 +43,7 @@ export default function TagsPage() {
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      toast({ title: 'Name is required', variant: 'destructive' });
+      toast.error('Name is required');
       return;
     }
     try {
@@ -54,12 +53,12 @@ export default function TagsPage() {
         body: JSON.stringify({ ...formData, slug: '' }),
       });
       if (!res.ok) throw new Error('Failed to create tag');
-      toast({ title: 'Tag created' });
+      toast.success('Tag created');
       setEditorOpen(false);
       setFormData({ name: '' });
       refetch();
     } catch {
-      toast({ title: 'Failed to create tag', variant: 'destructive' });
+      toast.error('Failed to create tag');
     }
   };
 
@@ -67,10 +66,10 @@ export default function TagsPage() {
     try {
       const res = await fetch(`/api/dashboard/tags?id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
-      toast({ title: 'Tag deleted' });
+      toast.success('Tag deleted');
       refetch();
     } catch {
-      toast({ title: 'Failed to delete', variant: 'destructive' });
+      toast.error('Failed to delete');
     }
   };
 

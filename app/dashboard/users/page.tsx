@@ -1,294 +1,364 @@
+// FILE: app/dashboard/users/page.tsx
 'use client';
 
 import * as React from 'react';
-import { motion } from 'framer-motion';
-import { Users, Plus, Search, MoreHorizontal, Shield, Mail, Trash2, Edit, Ban, CheckCircle2, Download } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
+import { Loader2, Pencil, ShieldAlert, Trash2, Users as UsersIcon } from 'lucide-react';
+import { PageHeader } from '@/components/dashboard/page-header';
+import { EmptyState } from '@/components/dashboard/empty-state';
+import { ErrorState } from '@/components/dashboard/error-state';
+import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeletons';
+import { Unauthorized } from '@/components/dashboard/unauthorized';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Label } from '@/components/ui/label';
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
+  TableBody,
+  TableHead,
   TableRow,
+  TableCell,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Select,
-  SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectContent,
+  SelectItem,
 } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { PageHeader } from '@/components/dashboard/page-header';
-import { EmptyState } from '@/components/dashboard/empty-state';
-import { StatCard } from '@/components/dashboard/stat-card';
-import { TableSkeleton } from '@/components/dashboard/dashboard-skeletons';
-import { ErrorState } from '@/components/dashboard/error-state';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { can, canActOnTarget, roleLabel, type Role } from '@/lib/permissions';
 
-interface DashboardUser {
+interface UserRow {
   id: string;
   name: string | null;
   email: string;
   image: string | null;
   emailVerified: string | null;
   createdAt: string;
-  role: { id: string; name: string };
+  role: { id: string; name: Role };
 }
 
-interface Role {
+interface RoleRow {
   id: string;
-  name: string;
+  name: Role;
 }
 
 interface UsersResponse {
-  users: DashboardUser[];
-  roles: Role[];
+  users: UserRow[];
+  roles: RoleRow[];
 }
 
-const roleColors: Record<string, string> = {
-  SUPER_ADMIN: 'bg-destructive/10 text-destructive',
-  ADMIN: 'bg-primary/10 text-primary',
-  MODERATOR: 'bg-accent/10 text-accent',
-  CLIENT: 'bg-success/10 text-success',
-  USER: 'bg-secondary text-muted-foreground',
-  GUEST: 'bg-muted text-muted-foreground',
-};
-
 export default function UsersPage() {
-  const { toast } = useToast();
-  const [search, setSearch] = React.useState('');
-  const [selectedRole, setSelectedRole] = React.useState('ALL');
-  const [editUser, setEditUser] = React.useState<DashboardUser | null>(null);
-  const [deleteId, setDeleteId] = React.useState<string | null>(null);
-  const [editRoleId, setEditRoleId] = React.useState('');
-  const [editName, setEditName] = React.useState('');
+  const { data: session } = useSession();
+  const actorRole = (session?.user?.role ?? 'USER') as Role;
+  const actorId = session?.user?.id;
 
   const { data, loading, error, refetch } = useDashboardData<UsersResponse>('/api/dashboard/users');
-  const users = data?.users ?? [];
-  const roles = data?.roles ?? [];
 
-  const filtered = users.filter((u) => {
-    const matchesSearch = (u.name ?? '').toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
-    const matchesRole = selectedRole === 'ALL' || u.role.name === selectedRole;
-    return matchesSearch && matchesRole;
-  });
+  const [editTarget, setEditTarget] = React.useState<UserRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<UserRow | null>(null);
 
-  const openEdit = (user: DashboardUser) => {
-    setEditUser(user);
-    setEditName(user.name ?? '');
-    setEditRoleId(user.role.id);
-  };
+  if (!can(actorRole, 'users.read')) {
+    return <Unauthorized message="You don't have permission to view the Users page." />;
+  }
 
-  const handleSaveEdit = async () => {
-    if (!editUser) return;
+  if (loading) return <DashboardSkeleton />;
+  if (error || !data) return <ErrorState message="Failed to load users" onRetry={refetch} />;
+
+  const { users, roles } = data;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Users" description={`${users.length} registered user${users.length === 1 ? '' : 's'}`} />
+
+      <Card className="overflow-hidden p-0">
+        {users.length === 0 ? (
+          <EmptyState icon={UsersIcon} title="No users found" description="Registered users will appear here." className="border-0" />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((u) => {
+                const targetRole = u.role.name;
+                const isSuperAdminTarget = targetRole === 'SUPER_ADMIN';
+                const canEdit = can(actorRole, 'users.update') && canActOnTarget(actorRole, targetRole);
+                const canChangeRole = can(actorRole, 'users.updateRole') && canActOnTarget(actorRole, targetRole);
+                const canDelete =
+                  can(actorRole, 'users.delete') && canActOnTarget(actorRole, targetRole) && u.id !== actorId;
+
+                return (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">{u.name ?? '—'}</TableCell>
+                    <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={isSuperAdminTarget ? 'default' : 'outline'} className="capitalize">
+                        {roleLabel(targetRole)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {new Date(u.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          disabled={!canEdit && !canChangeRole}
+                          title={
+                            !canEdit && !canChangeRole
+                              ? "You can't modify a Super Admin account"
+                              : 'Edit user'
+                          }
+                          onClick={() => setEditTarget(u)}
+                        >
+                          {!canEdit && !canChangeRole ? (
+                            <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Pencil className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          disabled={!canDelete}
+                          title={
+                            u.id === actorId
+                              ? "You can't delete your own account"
+                              : !canDelete
+                                ? 'Only Super Admin can delete users'
+                                : 'Delete user'
+                          }
+                          onClick={() => setDeleteTarget(u)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
+
+      {editTarget && (
+        <EditUserDialog
+          user={editTarget}
+          roles={roles}
+          canChangeRole={can(actorRole, 'users.updateRole') && canActOnTarget(actorRole, editTarget.role.name)}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => {
+            setEditTarget(null);
+            refetch();
+          }}
+        />
+      )}
+
+      {deleteTarget && (
+        <DeleteUserDialog
+          user={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={() => {
+            setDeleteTarget(null);
+            refetch();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function EditUserDialog({
+  user,
+  roles,
+  canChangeRole,
+  onClose,
+  onSaved,
+}: {
+  user: UserRow;
+  roles: RoleRow[];
+  canChangeRole: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = React.useState(user.name ?? '');
+  const [roleId, setRoleId] = React.useState(user.role.id);
+  const [saving, setSaving] = React.useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
     try {
       const res = await fetch('/api/dashboard/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editUser.id, name: editName, roleId: editRoleId }),
+        body: JSON.stringify({
+          id: user.id,
+          name,
+          ...(canChangeRole && roleId !== user.role.id ? { roleId } : {}),
+        }),
       });
+
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? 'Failed to update user');
+        throw new Error(body.error ?? 'Unable to update user');
       }
-      toast({ title: 'User updated successfully' });
-      setEditUser(null);
-      refetch();
+
+      toast.success('User updated successfully.');
+      onSaved();
     } catch (err) {
-      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to update', variant: 'destructive' });
+      toast.error(err instanceof Error ? err.message : 'Unable to update user.');
+    } finally {
+      setSaving(false);
     }
   };
-
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    try {
-      const res = await fetch(`/api/dashboard/users?id=${deleteId}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? 'Failed to delete user');
-      }
-      toast({ title: 'User deleted' });
-      setDeleteId(null);
-      refetch();
-    } catch (err) {
-      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to delete', variant: 'destructive' });
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <PageHeader title="User Management" description="Manage users, roles, and permissions." />
-        <TableSkeleton />
-      </div>
-    );
-  }
-  if (error) return <ErrorState message={error} onRetry={refetch} />;
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="User Management" description="Manage users, roles, and permissions." />
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit user</DialogTitle>
+        </DialogHeader>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Users" value={users.length} icon={Users} accent="primary" />
-        <StatCard title="Verified" value={users.filter((u) => u.emailVerified).length} icon={CheckCircle2} accent="success" />
-        <StatCard title="Admins" value={users.filter((u) => u.role.name === 'ADMIN' || u.role.name === 'SUPER_ADMIN').length} icon={Shield} accent="warning" />
-        <StatCard title="Clients" value={users.filter((u) => u.role.name === 'CLIENT').length} icon={Users} accent="accent" />
-      </div>
-
-      <Card>
-        <CardContent className="p-5">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative max-w-sm flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
-                {['ALL', 'SUPER_ADMIN', 'ADMIN', 'CLIENT', 'USER'].map((role) => (
-                  <button
-                    key={role}
-                    onClick={() => setSelectedRole(role)}
-                    className={cn(
-                      'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-                      selectedRole === role ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    {role === 'ALL' ? 'All' : role.replace('_', ' ')}
-                  </button>
-                ))}
-              </div>
-            </div>
+        <div className="flex flex-col gap-4 py-2">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="edit-name">Name</Label>
+            <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} disabled={saving} />
           </div>
 
-          {filtered.length === 0 ? (
-            <EmptyState icon={Users} title="No users found" description="Try adjusting your search or filter." />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="hidden md:table-cell">Joined</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((user, i) => (
-                  <motion.tr key={user.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                            {(user.name ?? user.email).charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{user.name ?? 'Unnamed'}</p>
-                          <p className="text-xs text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className={cn('font-medium', roleColors[user.role.name] ?? roleColors.USER)}>
-                        {user.role.name.replace('_', ' ')}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden text-sm text-muted-foreground md:table-cell">{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => openEdit(user)}>
-                            <Edit className="h-3.5 w-3.5" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer gap-2" asChild>
-                            <a href={`mailto:${user.email}`}><Mail className="h-3.5 w-3.5" /> Email</a>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="cursor-pointer gap-2 text-destructive focus:text-destructive" onClick={() => setDeleteId(user.id)}>
-                            <Trash2 className="h-3.5 w-3.5" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </motion.tr>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="edit-role">Role</Label>
+            <Select value={roleId} onValueChange={setRoleId} disabled={!canChangeRole || saving}>
+              <SelectTrigger id="edit-role">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {roles.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {roleLabel(r.name)}
+                  </SelectItem>
                 ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Update user name and role.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="editName">Name</Label>
-              <Input id="editName" value={editName} onChange={(e) => setEditName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="editRole">Role</Label>
-              <Select value={editRoleId} onValueChange={setEditRoleId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {roles.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>{r.name.replace('_', ' ')}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              </SelectContent>
+            </Select>
+            {!canChangeRole && (
+              <p className="text-xs text-muted-foreground">Only a Super Admin can change roles.</p>
+            )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditUser(null)}>Cancel</Button>
-            <Button onClick={handleSaveEdit}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
 
-      <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete User?</DialogTitle>
-            <DialogDescription>This action cannot be undone. The user account will be permanently removed.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={saving || !name.trim()}>
+            {saving ? (
+              <>
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save changes'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteUserDialog({
+  user,
+  onClose,
+  onDeleted,
+}: {
+  user: UserRow;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const [deleting, setDeleting] = React.useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/dashboard/users?id=${encodeURIComponent(user.id)}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Unable to delete user');
+      }
+
+      toast.success('User deleted successfully.');
+      onDeleted();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Unable to delete user.');
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <AlertDialog open onOpenChange={(open) => !open && !deleting && onClose()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete {user.name ?? user.email}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This permanently removes the user account. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault();
+              handleDelete();
+            }}
+            disabled={deleting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {deleting ? (
+              <>
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              'Delete'
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

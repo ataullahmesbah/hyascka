@@ -1,5 +1,7 @@
 'use client';
 
+// FILE: app/dashboard/page.tsx
+
 import * as React from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
@@ -26,7 +28,11 @@ import { PageHeader } from '@/components/dashboard/page-header';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeletons';
 import { ErrorState } from '@/components/dashboard/error-state';
+import { PortalWelcome } from '@/components/dashboard/portal-welcome';
+import { can, type Role } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
+import { EditorOverview } from '@/components/dashboard/editor-overview';
+import { ModeratorOverview } from '@/components/dashboard/moderator-overview';
 
 interface DashboardStats {
   stats: {
@@ -117,11 +123,27 @@ const activityIcons: Record<string, { icon: typeof CheckCircle2; color: string }
 export default function DashboardHomePage() {
   const { data: session } = useSession();
   const userName = session?.user?.name ?? 'User';
-  const userRole = session?.user?.role ?? 'USER';
+  const userRole = (session?.user?.role ?? 'USER') as Role;
   const roleLabel = userRole.replace('_', ' ').toLowerCase();
 
-  const { data: dashboardData, loading, error, refetch } = useDashboardData<DashboardStats>('/api/dashboard/stats');
+  const showAgencyOverview = can(userRole, 'dashboard.viewAgencyOverview');
+  const showModeratorOverview = !showAgencyOverview && can(userRole, 'dashboard.viewModeratorOverview');
+  const showEditorOverview = !showAgencyOverview && !showModeratorOverview && can(userRole, 'dashboard.viewEditorOverview');
+
+  // Passing `null` when this role shouldn't see agency-wide stats skips
+  // the fetch entirely (see hooks/use-dashboard-data.ts) rather than
+  // fetching and discarding — the server route is also independently
+  // gated to the same role set, this just avoids the wasted 403 round-trip.
+  const { data: dashboardData, loading, error, refetch } = useDashboardData<DashboardStats>(
+    showAgencyOverview ? '/api/dashboard/stats' : null
+  );
   const trafficData = React.useMemo(() => generateTrafficData(), []);
+
+  if (showModeratorOverview) return <ModeratorOverview name={userName} />;
+  if (showEditorOverview) return <EditorOverview name={userName} />;
+  if (!showAgencyOverview) {
+    return <PortalWelcome name={userName} role={userRole} />;
+  }
 
   if (loading) return <DashboardSkeleton />;
   if (error || !dashboardData) return <ErrorState message="Failed to load dashboard data" onRetry={refetch} />;

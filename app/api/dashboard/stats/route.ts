@@ -1,13 +1,21 @@
+// FILE: app/api/dashboard/stats/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { can, type Role } from '@/lib/permissions';
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // This endpoint returns agency-wide counts (all users, all contacts,
+    // all blogs) — previously any authenticated user could read it,
+    // including CLIENT/USER. Restrict to internal roles.
+    if (!can(session.user.role as Role, 'dashboard.viewAgencyOverview')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const [userCount, projectCount, blogCount, messageCount, activeSubscribers, publishedBlogs, recentUsers, recentBlogs, recentContacts] = await Promise.all([

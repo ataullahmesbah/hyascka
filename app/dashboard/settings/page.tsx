@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface SiteSettings {
   id: string;
@@ -30,7 +30,6 @@ interface SiteSettings {
 }
 
 export default function SettingsPage() {
-  const { toast } = useToast();
   const { data: settings, refetch } = useDashboardData<SiteSettings>('/api/dashboard/settings');
 
   const [formData, setFormData] = React.useState({
@@ -89,10 +88,10 @@ export default function SettingsPage() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Failed to save settings');
-      toast({ title: `${section} settings saved` });
+      toast.success(`${section} settings saved`);
       refetch();
     } catch {
-      toast({ title: 'Failed to save settings', variant: 'destructive' });
+      toast.error('Failed to save settings');
     }
   };
 

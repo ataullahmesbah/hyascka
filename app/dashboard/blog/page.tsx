@@ -38,7 +38,7 @@ import { StatCard } from '@/components/dashboard/stat-card';
 import { TableSkeleton } from '@/components/dashboard/dashboard-skeletons';
 import { ErrorState } from '@/components/dashboard/error-state';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface BlogPost {
@@ -77,7 +77,6 @@ const statusColors: Record<string, string> = {
 };
 
 export default function BlogPage() {
-  const { toast } = useToast();
   const [search, setSearch] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('ALL');
   const [editorOpen, setEditorOpen] = React.useState(false);
@@ -125,7 +124,7 @@ export default function BlogPage() {
 
   const handleSave = async () => {
     if (!formData.title.trim()) {
-      toast({ title: 'Title is required', variant: 'destructive' });
+      toast.error('Title is required');
       return;
     }
 
@@ -150,11 +149,11 @@ export default function BlogPage() {
         throw new Error(body.error ?? 'Failed to save blog post');
       }
 
-      toast({ title: editingPost ? 'Blog post updated' : 'Blog post created' });
+      toast.success(editingPost ? 'Blog post updated' : 'Blog post created');
       setEditorOpen(false);
       refetch();
     } catch (err) {
-      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to save', variant: 'destructive' });
+      toast.error(err instanceof Error ? err.message : 'Failed to save');
     }
   };
 
@@ -163,11 +162,11 @@ export default function BlogPage() {
     try {
       const res = await fetch(`/api/dashboard/blog/${deleteId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
-      toast({ title: 'Blog post deleted' });
+      toast.success('Blog post deleted');
       setDeleteId(null);
       refetch();
     } catch {
-      toast({ title: 'Failed to delete', variant: 'destructive' });
+      toast.error('Failed to delete');
     }
   };
 

@@ -18,7 +18,7 @@ import { EmptyState } from '@/components/dashboard/empty-state';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { ErrorState } from '@/components/dashboard/error-state';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface ContactMessage {
@@ -44,7 +44,6 @@ const statusColors: Record<string, string> = {
 const statusOrder = ['NEW', 'IN_PROGRESS', 'RESOLVED', 'ARCHIVED'];
 
 export default function MessagesPage() {
-  const { toast } = useToast();
   const [search, setSearch] = React.useState('');
   const [selected, setSelected] = React.useState<ContactMessage | null>(null);
   const [statusFilter, setStatusFilter] = React.useState('ALL');
@@ -75,9 +74,9 @@ export default function MessagesPage() {
       if (selected?.id === id) {
         setSelected({ ...selected, status });
       }
-      toast({ title: `Status updated to ${status.replace('_', ' ')}` });
+      toast.success(`Status updated to ${status.replace('_', ' ')}`);
     } catch {
-      toast({ title: 'Failed to update status', variant: 'destructive' });
+      toast.error('Failed to update status');
     }
   };
 
@@ -85,11 +84,11 @@ export default function MessagesPage() {
     try {
       const res = await fetch(`/api/dashboard/contacts?id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
-      toast({ title: 'Message deleted' });
+      toast.success('Message deleted');
       if (selected?.id === id) setSelected(null);
       refetch();
     } catch {
-      toast({ title: 'Failed to delete', variant: 'destructive' });
+      toast.error('Failed to delete');
     }
   };
 

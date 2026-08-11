@@ -21,7 +21,7 @@ import { EmptyState } from '@/components/dashboard/empty-state';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { ErrorState } from '@/components/dashboard/error-state';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface Subscriber {
@@ -33,7 +33,6 @@ interface Subscriber {
 }
 
 export default function NewsletterPage() {
-  const { toast } = useToast();
   const [search, setSearch] = React.useState('');
 
   const { data: subscribers, loading, error, refetch } = useDashboardData<Subscriber[]>('/api/dashboard/newsletter');
@@ -46,10 +45,10 @@ export default function NewsletterPage() {
     try {
       const res = await fetch(`/api/dashboard/newsletter?id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
-      toast({ title: 'Subscriber deleted' });
+      toast.success('Subscriber deleted');
       refetch();
     } catch {
-      toast({ title: 'Failed to delete', variant: 'destructive' });
+      toast.error('Failed to delete');
     }
   };
 

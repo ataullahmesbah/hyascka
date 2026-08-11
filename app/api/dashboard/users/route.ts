@@ -1,27 +1,25 @@
+// FILE: app/api/dashboard/users/route.ts
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import type { RoleName } from '@prisma/client';
 import { z } from 'zod';
+import { requirePermission } from '@/lib/dashboard-auth';
+import { canActOnTarget, type Role } from '@/lib/permissions';
 
-const MANAGER_ROLES: RoleName[] = ['SUPER_ADMIN', 'ADMIN'];
-
+// NOTE: Active/Inactive suspension is a real requirement from the RBAC
+// correction phase, but User has no `status` column in the schema yet
+// (flagged in the Phase 1 audit). Accepting a `status` field here would
+// silently do nothing, which is worse than not accepting it — omitted
+// until that schema change ships.
 const userUpdateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   roleId: z.string().optional(),
-  status: z.enum(['ACTIVE', 'SUSPENDED']).optional(),
 });
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (!MANAGER_ROLES.includes(session.user.role as RoleName)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const { user, authorized } = await requirePermission('users.read');
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!authorized) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const users = await prisma.user.findMany({
       select: {
@@ -48,13 +46,9 @@ export async function GET() {
 
 export async function PATCH(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (!MANAGER_ROLES.includes(session.user.role as RoleName)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const { user, authorized } = await requirePermission('users.update');
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!authorized) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json();
     const { id, ...updateData } = body;
@@ -73,17 +67,24 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (targetUser.role.name === 'SUPER_ADMIN' && session.user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Cannot modify super admin' }, { status: 403 });
+    const actorRole = user.role.name as Role;
+    const targetRole = targetUser.role.name as Role;
+
+    if (!canActOnTarget(actorRole, targetRole)) {
+      return NextResponse.json({ error: 'Cannot modify this account' }, { status: 403 });
     }
 
+    // Role reassignment is a stricter, separate capability — ADMIN can
+    // edit name/status but must never be able to change a user's role.
     if (parsed.data.roleId) {
+      const { authorized: canChangeRole } = await requirePermission('users.updateRole');
+      if (!canChangeRole) {
+        return NextResponse.json({ error: 'Only super admins can change roles' }, { status: 403 });
+      }
+
       const newRole = await prisma.role.findUnique({ where: { id: parsed.data.roleId } });
       if (!newRole) {
         return NextResponse.json({ error: 'Role not found' }, { status: 404 });
-      }
-      if (newRole.name === 'SUPER_ADMIN' && session.user.role !== 'SUPER_ADMIN') {
-        return NextResponse.json({ error: 'Only super admins can assign super admin role' }, { status: 403 });
       }
     }
 
@@ -104,13 +105,12 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Deletion is SUPER_ADMIN-only. The previous version of this route
+    // allowed ADMIN to delete users, which contradicted the intended
+    // permission model (ADMIN can suspend/edit, never delete).
+    const { user, authorized } = await requirePermission('users.delete');
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!authorized) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -118,7 +118,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }
 
-    if (id === session.user.id) {
+    if (id === user.id) {
       return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
     }
 
@@ -129,10 +129,6 @@ export async function DELETE(req: Request) {
 
     if (!targetUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    if (targetUser.role.name === 'SUPER_ADMIN' && session.user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Cannot delete super admin' }, { status: 403 });
     }
 
     await prisma.user.delete({ where: { id } });

@@ -1,3 +1,4 @@
+// FILE: prisma/schema.prisma
 // HYASCKA — Prisma Schema
 // Enterprise-grade schema supporting auth, CMS, CRM, and future expansion.
 
@@ -18,7 +19,7 @@ enum RoleName {
   SUPER_ADMIN
   ADMIN
   MODERATOR
-  EDITOR    
+  EDITOR
   CLIENT
   USER
   GUEST
@@ -369,3 +370,4 @@ model SiteSettings {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+

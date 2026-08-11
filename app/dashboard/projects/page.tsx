@@ -38,7 +38,7 @@ import { StatCard } from '@/components/dashboard/stat-card';
 import { TableSkeleton } from '@/components/dashboard/dashboard-skeletons';
 import { ErrorState } from '@/components/dashboard/error-state';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface Project {
@@ -64,7 +64,6 @@ const statusColors: Record<string, string> = {
 };
 
 export default function ProjectsPage() {
-  const { toast } = useToast();
   const [search, setSearch] = React.useState('');
   const [editorOpen, setEditorOpen] = React.useState(false);
   const [editingProject, setEditingProject] = React.useState<Project | null>(null);
@@ -108,7 +107,7 @@ export default function ProjectsPage() {
 
   const handleSave = async () => {
     if (!formData.title.trim() || !formData.category.trim()) {
-      toast({ title: 'Title and category are required', variant: 'destructive' });
+      toast.error('Title and category are required');
       return;
     }
 
@@ -130,11 +129,11 @@ export default function ProjectsPage() {
         throw new Error(body.error ?? 'Failed to save project');
       }
 
-      toast({ title: editingProject ? 'Project updated' : 'Project created' });
+      toast.success(editingProject ? 'Project updated' : 'Project created');
       setEditorOpen(false);
       refetch();
     } catch (err) {
-      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to save', variant: 'destructive' });
+      toast.error(err instanceof Error ? err.message : 'Failed to save');
     }
   };
 
@@ -143,11 +142,11 @@ export default function ProjectsPage() {
     try {
       const res = await fetch(`/api/dashboard/projects/${deleteId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
-      toast({ title: 'Project deleted' });
+      toast.success('Project deleted');
       setDeleteId(null);
       refetch();
     } catch {
-      toast({ title: 'Failed to delete', variant: 'destructive' });
+      toast.error('Failed to delete');
     }
   };
 
