@@ -49,13 +49,25 @@ export const PERMISSIONS = {
   // --- Services (existing Service model) ---
   'services.read': ALL_ROLES,
   'services.create': ['SUPER_ADMIN', 'ADMIN'] as Role[],
-  'services.update': ['SUPER_ADMIN', 'ADMIN'] as Role[],
+  'services.update': ['SUPER_ADMIN', 'ADMIN'] as Role[], // includes publish/archive status changes
+  'services.categories.manage': ['SUPER_ADMIN', 'ADMIN'] as Role[],
 
-  // --- Projects (existing Project model; CLIENT ownership pattern reserved for later phase) ---
-  'projects.read': ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'EDITOR'] as Role[],
-  'projects.read_own': ['CLIENT'] as Role[], // a CLIENT may only read projects requireOwnership() confirms belong to them
-  'projects.create': ['SUPER_ADMIN', 'ADMIN'] as Role[],
-  'projects.update': ['SUPER_ADMIN', 'ADMIN'] as Role[],
+  // --- Orders (Phase 2: real Order model) ---
+  'orders.read': ['SUPER_ADMIN', 'ADMIN'] as Role[], // agency-wide order visibility
+  'orders.read_own': ['CLIENT', 'USER'] as Role[], // a CLIENT/USER may only read orders requireOwnership() confirms belong to them
+  'orders.create_own': ['CLIENT', 'USER'] as Role[], // checkout — creates an order owned by the requester
+  'orders.update': ['SUPER_ADMIN', 'ADMIN'] as Role[], // status transitions (not price/amount — server-computed only)
+
+  // --- Payments (Phase 2: real Payment model, MANUAL provider today) ---
+  'payments.read': ['SUPER_ADMIN', 'ADMIN'] as Role[],
+  'payments.confirm': ['SUPER_ADMIN', 'ADMIN'] as Role[], // manually mark a MANUAL payment as PAID
+
+  // --- Invoices (Phase 2: real Invoice model) ---
+  'invoices.read': ['SUPER_ADMIN', 'ADMIN'] as Role[],
+  'invoices.read_own': ['CLIENT', 'USER'] as Role[],
+
+  // --- Client Services (Phase 2: real ClientService model) ---
+  'clientServices.read_own': ['CLIENT', 'USER'] as Role[],
 
   // --- Content (Blog/CMS — foundation capability only; module build-out is a later phase) ---
   'content.read': ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'EDITOR'] as Role[],

@@ -85,6 +85,10 @@ model User {
   resetTokens       PasswordResetToken[]
   contactSubmissions Contact[]
   blogPosts         Blog[]
+  orders            Order[]
+  verifiedPayments  Payment[]
+  invoices          Invoice[]
+  clientServices    ClientService[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -234,17 +238,171 @@ model Technology {
 // CMS — Service
 // ─────────────────────────────────────
 
-model Service {
-  id          String   @id @default(cuid())
-  title       String   @unique
-  slug        String   @unique
+enum ServiceStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model ServiceCategory {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
   description String?
-  icon        String?
-  features    String[]
-  order       Int      @default(0)
-  featured    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  services    Service[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Service {
+  id               String           @id @default(cuid())
+  title            String           @unique
+  slug             String           @unique
+  shortDescription String?
+  description      String?
+  image            String?
+  icon             String?
+  features         String[]
+  order            Int              @default(0)
+  featured         Boolean          @default(false)
+  categoryId       String?
+  category         ServiceCategory? @relation(fields: [categoryId], references: [id])
+  // Nullable: a service without a price is not yet purchasable — the
+  // checkout flow requires both price and currency to be set.
+  price            Decimal?         @db.Decimal(10, 2)
+  currency         String           @default("USD")
+  deliveryTime     String?
+  status           ServiceStatus    @default(PUBLISHED)
+  seoTitle         String?
+  seoDescription   String?
+  orders           Order[]
+  clientServices   ClientService[]
+  invoices         Invoice[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([categoryId])
+  @@index([status])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+// Financial records are never hard-deleted (see Order/Payment/Invoice —
+// none have onDelete: Cascade toward destructive removal of history).
+model Order {
+  id            String         @id @default(cuid())
+  orderNumber   String         @unique
+  userId        String
+  user          User           @relation(fields: [userId], references: [id])
+  serviceId     String
+  service       Service        @relation(fields: [serviceId], references: [id])
+  amount        Decimal        @db.Decimal(10, 2)
+  currency      String
+  status        OrderStatus    @default(PENDING)
+  // Denormalized cache of payment.status, kept in sync inside the same
+  // transaction that updates Payment — lets order lists/queries avoid a
+  // join for the common case, while Payment remains the source of truth.
+  paymentStatus PaymentStatus  @default(PENDING)
+  notes         String?
+  payment       Payment?
+  invoice       Invoice?
+  clientService ClientService?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([serviceId])
+  @@index([status])
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  orderId      String        @unique
+  order        Order         @relation(fields: [orderId], references: [id])
+  // "MANUAL" today (admin-confirmed bank transfer / offline payment).
+  // A real gateway (Stripe, SSLCommerz, etc.) is a new value here plus
+  // its own verification route — this field is what makes that a
+  // non-breaking addition later rather than a redesign.
+  provider     String        @default("MANUAL")
+  reference    String?
+  amount       Decimal       @db.Decimal(10, 2)
+  currency     String
+  status       PaymentStatus @default(PENDING)
+  paidAt       DateTime?
+  verifiedById String?
+  verifiedBy   User?         @relation(fields: [verifiedById], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([status])
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  VOID
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  invoiceNumber String        @unique
+  orderId       String        @unique
+  order         Order         @relation(fields: [orderId], references: [id])
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  serviceId     String
+  service       Service       @relation(fields: [serviceId], references: [id])
+  subtotal      Decimal       @db.Decimal(10, 2)
+  discount      Decimal       @default(0) @db.Decimal(10, 2)
+  total         Decimal       @db.Decimal(10, 2)
+  currency      String
+  status        InvoiceStatus @default(UNPAID)
+  issueDate     DateTime      @default(now())
+  dueDate       DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum ClientServiceStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model ClientService {
+  id          String              @id @default(cuid())
+  userId      String
+  user        User                @relation(fields: [userId], references: [id])
+  serviceId   String
+  service     Service             @relation(fields: [serviceId], references: [id])
+  orderId     String              @unique
+  order       Order               @relation(fields: [orderId], references: [id])
+  status      ClientServiceStatus @default(ACTIVE)
+  activatedAt DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }
 
 // ─────────────────────────────────────
@@ -370,4 +528,5 @@ model SiteSettings {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
 

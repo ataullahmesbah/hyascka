@@ -33,6 +33,8 @@ import { can, type Role } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import { EditorOverview } from '@/components/dashboard/editor-overview';
 import { ModeratorOverview } from '@/components/dashboard/moderator-overview';
+import { ClientOverview } from '@/components/dashboard/client-overview';
+
 
 interface DashboardStats {
   stats: {
@@ -129,6 +131,8 @@ export default function DashboardHomePage() {
   const showAgencyOverview = can(userRole, 'dashboard.viewAgencyOverview');
   const showModeratorOverview = !showAgencyOverview && can(userRole, 'dashboard.viewModeratorOverview');
   const showEditorOverview = !showAgencyOverview && !showModeratorOverview && can(userRole, 'dashboard.viewEditorOverview');
+  const showClientOverview =
+    !showAgencyOverview && !showModeratorOverview && !showEditorOverview && userRole === 'CLIENT';
 
   // Passing `null` when this role shouldn't see agency-wide stats skips
   // the fetch entirely (see hooks/use-dashboard-data.ts) rather than
@@ -141,6 +145,7 @@ export default function DashboardHomePage() {
 
   if (showModeratorOverview) return <ModeratorOverview name={userName} />;
   if (showEditorOverview) return <EditorOverview name={userName} />;
+  if (showClientOverview) return <ClientOverview name={userName} />;
   if (!showAgencyOverview) {
     return <PortalWelcome name={userName} role={userRole} />;
   }

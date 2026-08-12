@@ -33,6 +33,7 @@ export function useDashboardData<T>(
     let cancelled = false;
 
     async function fetchData() {
+      if (!url) return; // re-check inside the closure so TS narrows string | null → string here
       setLoading(true);
       setError(null);
       try {

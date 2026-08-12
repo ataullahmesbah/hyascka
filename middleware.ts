@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 import { getSafeCallbackUrl } from './lib/safe-redirect';
 
 
-const PROTECTED_PREFIXES = ['/dashboard', '/profile', '/settings', '/admin'];
+const PROTECTED_PREFIXES = ['/dashboard', '/profile', '/settings', '/admin', '/checkout'];
 const AUTH_PAGES = ['/login', '/register'];
 
 export async function middleware(req: NextRequest) {
@@ -56,6 +56,7 @@ export const config = {
     '/profile/:path*',
     '/settings/:path*',
     '/admin/:path*',
+    '/checkout',
     '/login',
     '/register',
   ],
