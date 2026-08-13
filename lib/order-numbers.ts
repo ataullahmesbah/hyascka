@@ -39,3 +39,20 @@ export async function nextInvoiceNumber(tx: Tx): Promise<string> {
     const nextSeq = Number.isFinite(lastSeq) ? lastSeq + 1 : 1;
     return `${prefix}${String(nextSeq).padStart(4, '0')}`;
 }
+
+/**
+ * Generates the next offer number as "HY-OFR-000001". Call with the
+ * transaction client the caller is inside.
+ */
+export async function nextOfferNumber(tx: Tx): Promise<string> {
+    const prefix = 'HY-OFR-';
+
+    const last = await tx.customOffer.findFirst({
+        orderBy: { createdAt: 'desc' },
+        select: { offerNumber: true },
+    });
+
+    const lastSeq = last ? parseInt(last.offerNumber.replace(prefix, ''), 10) : 0;
+    const nextSeq = Number.isFinite(lastSeq) ? lastSeq + 1 : 1;
+    return `${prefix}${String(nextSeq).padStart(6, '0')}`;
+}

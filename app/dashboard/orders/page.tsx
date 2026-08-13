@@ -31,7 +31,8 @@ interface OrderRow {
     status: string;
     paymentStatus: string;
     createdAt: string;
-    service: { title: string };
+    service: { title: string } | null;
+    offer: { title: string; offerNumber: string } | null;
     user?: { name: string | null; email: string };
     payment: { status: string; provider: string } | null;
 }
@@ -110,7 +111,7 @@ export default function OrdersPage() {
                             {orders.map((o) => (
                                 <TableRow key={o.id}>
                                     <TableCell className="font-medium">{o.orderNumber}</TableCell>
-                                    <TableCell>{o.service.title}</TableCell>
+                                    <TableCell>{o.service?.title ?? o.offer?.title ?? '—'}</TableCell>
                                     {isAdmin && (
                                         <TableCell className="text-muted-foreground">
                                             {o.user?.name ?? o.user?.email ?? '—'}

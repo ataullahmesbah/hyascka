@@ -46,6 +46,20 @@ export const PERMISSIONS = {
   'clients.create': ['SUPER_ADMIN', 'ADMIN'] as Role[],
   'clients.update': ['SUPER_ADMIN', 'ADMIN'] as Role[],
 
+  // --- Leads (Phase 3: Contact model doubles as Lead — see schema comment) ---
+  'leads.read': ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] as Role[],
+  'leads.read_own': ['USER'] as Role[], // a USER may see contact requests they personally submitted while logged in
+  'leads.update': ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] as Role[], // status changes
+  'leads.assign': ['SUPER_ADMIN', 'ADMIN'] as Role[],
+
+  // --- Custom Offers (Phase 3) ---
+  'offers.read': ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] as Role[],
+  'offers.read_own': ['CLIENT', 'USER'] as Role[],
+  'offers.create': ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] as Role[],
+  'offers.send': ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] as Role[],
+  'offers.cancel': ['SUPER_ADMIN', 'ADMIN'] as Role[],
+  'offers.respond_own': ['CLIENT', 'USER'] as Role[], // accept/reject an offer addressed to them
+
   // --- Services (existing Service model) ---
   'services.read': ALL_ROLES,
   'services.create': ['SUPER_ADMIN', 'ADMIN'] as Role[],

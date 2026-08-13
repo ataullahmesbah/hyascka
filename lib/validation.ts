@@ -53,6 +53,7 @@ export const contactSchema = z.object({
   service: z.string().optional(),
   budget: z.string().optional(),
   message: z.string().min(10, 'Message must be at least 10 characters').max(5000, 'Message is too long'),
+  isCustomRequest: z.boolean().optional(),
 });
 
 // ─────────────────────────────────────

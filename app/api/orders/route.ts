@@ -28,6 +28,7 @@ export async function GET(req: Request) {
         where,
         include: {
           service: { select: { title: true, slug: true } },
+          offer: { select: { title: true, offerNumber: true } },
           user: canReadAll ? { select: { name: true, email: true } } : false,
           payment: { select: { status: true, provider: true } },
         },

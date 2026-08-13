@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/dashboard-auth';
 import { nextInvoiceNumber } from '@/lib/order-numbers';
+import { notify } from '@/lib/notifications';
 
 /**
  * Manual payment confirmation (provider === 'MANUAL'): an admin confirms
@@ -16,6 +17,12 @@ import { nextInvoiceNumber } from '@/lib/order-numbers';
  * state instead of re-running the transaction, so a double-click or a
  * retried webhook can never create a duplicate invoice or double-activate
  * the client service.
+ *
+ * Handles two order shapes (Phase 2 vs Phase 3):
+ *  - order.serviceId set  → single-service purchase → one ClientService
+ *  - order.offerId set    → custom-offer purchase → one ClientService per
+ *    offer item that references a real Service (custom-only line items
+ *    don't have anything in the catalog to activate)
  */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
     try {
@@ -25,7 +32,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
         const order = await prisma.order.findUnique({
             where: { id: params.id },
-            include: { payment: true, invoice: true, clientService: true },
+            include: {
+                payment: true,
+                invoice: true,
+                clientServices: true,
+                offer: { include: { items: true } },
+            },
         });
 
         if (!order || !order.payment) {
@@ -66,24 +78,51 @@ export async function POST(req: Request, { params }: { params: { id: string } })
                     },
                 }));
 
-            const clientService =
-                order.clientService ??
-                (await tx.clientService.create({
-                    data: {
-                        userId: order.userId,
-                        serviceId: order.serviceId,
-                        orderId: order.id,
-                        status: 'ACTIVE',
-                        activatedAt: new Date(),
-                    },
-                }));
+            let clientServices = order.clientServices;
+            if (clientServices.length === 0) {
+                if (order.serviceId) {
+                    clientServices = [
+                        await tx.clientService.create({
+                            data: {
+                                userId: order.userId,
+                                serviceId: order.serviceId,
+                                orderId: order.id,
+                                status: 'ACTIVE',
+                                activatedAt: new Date(),
+                            },
+                        }),
+                    ];
+                } else if (order.offer) {
+                    const serviceItems = order.offer.items.filter((item) => item.serviceId);
+                    clientServices = await Promise.all(
+                        serviceItems.map((item) =>
+                            tx.clientService.create({
+                                data: {
+                                    userId: order.userId,
+                                    serviceId: item.serviceId!,
+                                    orderId: order.id,
+                                    status: 'ACTIVE',
+                                    activatedAt: new Date(),
+                                },
+                            })
+                        )
+                    );
+                }
+            }
 
-            return { payment, order: updatedOrder, invoice, clientService };
+            return { payment, order: updatedOrder, invoice, clientServices };
         });
 
         // ORDER_CREATED / PAYMENT_SUCCESSFUL / INVOICE_CREATED / SERVICE_ACTIVATED
-        // event boundary: no notification system exists yet (out of Phase 2
-        // scope), but this is exactly where those would fire once it does.
+        // event boundary — this is the one that actually fires now that
+        // notifications exist (Phase 3).
+        await notify(prisma, {
+            userId: order.userId,
+            type: 'PAYMENT_CONFIRMED',
+            title: 'Payment confirmed',
+            message: `Invoice ${result.invoice.invoiceNumber} — your service is now active.`,
+            link: '/dashboard/my-services',
+        });
 
         return NextResponse.json({ ...result, alreadyConfirmed: false });
     } catch {

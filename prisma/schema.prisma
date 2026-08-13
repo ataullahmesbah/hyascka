@@ -42,6 +42,14 @@ enum BlogStatus {
 
 enum ContactStatus {
   NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  CONVERTED
+  LOST
+  // Kept for backward compatibility with existing rows — not used by
+  // new Lead-lifecycle code, but removing them would require rewriting
+  // every existing Contact row's status, which risks losing history.
   IN_PROGRESS
   RESOLVED
   ARCHIVED
@@ -89,6 +97,12 @@ model User {
   verifiedPayments  Payment[]
   invoices          Invoice[]
   clientServices    ClientService[]
+  assignedContacts       Contact[]                 @relation("ContactAssignedTo")
+  createdOffers          CustomOffer[]             @relation("OfferCreatedBy")
+  clientOffers           CustomOffer[]             @relation("OfferClient")
+  conversationParticipant ConversationParticipant[]
+  sentMessages           Message[]
+  notifications          Notification[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -278,6 +292,7 @@ model Service {
   orders           Order[]
   clientServices   ClientService[]
   invoices         Invoice[]
+  offerItems       OfferItem[]
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -305,13 +320,19 @@ enum PaymentStatus {
 
 // Financial records are never hard-deleted (see Order/Payment/Invoice —
 // none have onDelete: Cascade toward destructive removal of history).
+// serviceId and offerId are mutually exclusive in practice (an order is
+// either a single standard-service purchase or a custom-offer purchase) —
+// enforced in application code, since Postgres CHECK constraints for this
+// XOR shape aren't worth the added migration complexity here.
 model Order {
   id            String         @id @default(cuid())
   orderNumber   String         @unique
   userId        String
   user          User           @relation(fields: [userId], references: [id])
-  serviceId     String
-  service       Service        @relation(fields: [serviceId], references: [id])
+  serviceId     String?
+  service       Service?       @relation(fields: [serviceId], references: [id])
+  offerId       String?        @unique
+  offer         CustomOffer?   @relation(fields: [offerId], references: [id])
   amount        Decimal        @db.Decimal(10, 2)
   currency      String
   status        OrderStatus    @default(PENDING)
@@ -322,7 +343,7 @@ model Order {
   notes         String?
   payment       Payment?
   invoice       Invoice?
-  clientService ClientService?
+  clientServices ClientService[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -366,8 +387,10 @@ model Invoice {
   order         Order         @relation(fields: [orderId], references: [id])
   userId        String
   user          User          @relation(fields: [userId], references: [id])
-  serviceId     String
-  service       Service       @relation(fields: [serviceId], references: [id])
+  // Nullable: a Phase 2 single-service order always has one; a Phase 3
+  // custom-offer order may bundle several (see OfferItem on the offer).
+  serviceId     String?
+  service       Service?      @relation(fields: [serviceId], references: [id])
   subtotal      Decimal       @db.Decimal(10, 2)
   discount      Decimal       @default(0) @db.Decimal(10, 2)
   total         Decimal       @db.Decimal(10, 2)
@@ -394,7 +417,10 @@ model ClientService {
   user        User                @relation(fields: [userId], references: [id])
   serviceId   String
   service     Service             @relation(fields: [serviceId], references: [id])
-  orderId     String              @unique
+  // Not @unique: a Phase 2 order activates exactly one ClientService, but
+  // a Phase 3 custom-offer order can activate several (one per OfferItem
+  // that references a real Service).
+  orderId     String
   order       Order               @relation(fields: [orderId], references: [id])
   status      ClientServiceStatus @default(ACTIVE)
   activatedAt DateTime?
@@ -403,6 +429,7 @@ model ClientService {
 
   @@index([userId])
   @@index([status])
+  @@index([orderId])
 }
 
 // ─────────────────────────────────────
@@ -443,23 +470,161 @@ model Project {
 // CRM — Contact
 // ─────────────────────────────────────
 
+enum ContactPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// Contact IS the Lead model — it already had name/email/phone/message/
+// status/userId, exactly what a Lead needs (see Phase 3 audit). Extended
+// rather than duplicated. ContactStatus gains new values additively
+// (IN_PROGRESS/RESOLVED/ARCHIVED are kept, not removed, so existing rows
+// stay valid) rather than being destructively redefined.
 model Contact {
-  id        String        @id @default(cuid())
-  name      String
-  email     String
-  phone     String?
-  company   String?
-  service   String?
-  budget    String?
-  message   String
-  status    ContactStatus @default(NEW)
-  userId    String?
-  user      User?         @relation(fields: [userId], references: [id])
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id             String          @id @default(cuid())
+  name           String
+  email          String
+  phone          String?
+  company        String?
+  service        String?
+  budget         String?
+  message        String
+  status         ContactStatus   @default(NEW)
+  priority       ContactPriority @default(MEDIUM)
+  source         String          @default("CONTACT_FORM")
+  isCustomRequest Boolean        @default(false)
+  userId         String?
+  user           User?           @relation(fields: [userId], references: [id])
+  assignedToId   String?
+  assignedTo     User?           @relation("ContactAssignedTo", fields: [assignedToId], references: [id])
+  offers         CustomOffer[]
+  conversations  Conversation[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@index([status])
   @@index([email])
+  @@index([assignedToId])
+}
+
+enum OfferStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+model CustomOffer {
+  id            String        @id @default(cuid())
+  offerNumber   String        @unique
+  title         String
+  description   String?
+  subtotal      Decimal       @db.Decimal(10, 2)
+  discount      Decimal       @default(0) @db.Decimal(10, 2)
+  total         Decimal       @db.Decimal(10, 2)
+  currency      String        @default("USD")
+  validUntil    DateTime?
+  status        OfferStatus   @default(DRAFT)
+  rejectReason  String?
+  createdById   String
+  createdBy     User          @relation("OfferCreatedBy", fields: [createdById], references: [id])
+  // Nullable: a lead without a registered account can still receive a
+  // DRAFT offer for internal prep, but it can't be sent/accepted until
+  // linked to a real User (see Phase 3 report — no account-invite flow yet).
+  clientId      String?
+  client        User?         @relation("OfferClient", fields: [clientId], references: [id])
+  contactId     String
+  contact       Contact       @relation(fields: [contactId], references: [id])
+  items         OfferItem[]
+  order         Order?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([status])
+  @@index([clientId])
+  @@index([contactId])
+}
+
+model OfferItem {
+  id        String      @id @default(cuid())
+  offerId   String
+  offer     CustomOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  // Nullable: an item can reference an existing Service for pricing
+  // consistency, or be a fully custom line (label + amount only).
+  serviceId String?
+  service   Service?    @relation(fields: [serviceId], references: [id])
+  label     String
+  amount    Decimal     @db.Decimal(10, 2)
+  order     Int         @default(0)
+}
+
+model Conversation {
+  id           String                    @id @default(cuid())
+  subject      String?
+  contactId    String?
+  contact      Contact?                  @relation(fields: [contactId], references: [id])
+  participants ConversationParticipant[]
+  messages     Message[]
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
+  @@index([contactId])
+}
+
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  lastReadAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id])
+  content        String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+}
+
+enum NotificationType {
+  NEW_LEAD
+  LEAD_ASSIGNED
+  NEW_OFFER
+  OFFER_ACCEPTED
+  OFFER_REJECTED
+  OFFER_EXPIRED
+  NEW_MESSAGE
+  PAYMENT_CONFIRMED
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  type      NotificationType
+  title     String
+  message   String?
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([userId, readAt])
 }
 
 // ─────────────────────────────────────
@@ -528,5 +693,6 @@ model SiteSettings {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
 
 

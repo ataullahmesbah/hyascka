@@ -31,6 +31,8 @@ import {
   ShoppingBag,
   ClipboardList,
   ReceiptText,
+  UserPlus,
+  FileSignature,
 } from 'lucide-react';
 
 export type DashboardRole = Role;
@@ -64,6 +66,14 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
       { label: 'Projects', href: '/dashboard/projects', icon: FolderKanban, roles: ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'EDITOR', 'CLIENT'] },
       { label: 'Portfolio', href: '/dashboard/portfolio', icon: Briefcase, roles: ['SUPER_ADMIN', 'ADMIN', 'EDITOR'] },
       { label: 'Services', href: '/dashboard/services', icon: Wrench, roles: ['SUPER_ADMIN', 'ADMIN'] },
+    ],
+  },
+  {
+    label: 'Sales',
+    items: [
+      { label: 'Leads', href: '/dashboard/leads', icon: UserPlus, roles: ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] },
+      { label: 'Offers', href: '/dashboard/offers', icon: FileSignature, roles: ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] },
+      { label: 'My Offers', href: '/dashboard/my-offers', icon: FileSignature, roles: ['CLIENT', 'USER'] },
     ],
   },
   {
