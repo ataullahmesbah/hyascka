@@ -45,6 +45,10 @@ interface DashboardStats {
     subscribers: number;
     publishedBlogs: number;
     draftBlogs: number;
+    totalLeads: number;
+    newLeads: number;
+    pendingOffers: number;
+    acceptedOffers: number;
   };
   recentUsers: Array<{
     id: string;
@@ -185,6 +189,13 @@ export default function DashboardHomePage() {
         <StatCard title="Total Projects" value={stats.projects} icon={FolderKanban} accent="accent" delay={0.05} />
         <StatCard title="Blog Posts" value={stats.blogs} icon={FileText} accent="success" delay={0.1} />
         <StatCard title="Messages" value={stats.messages} icon={Mail} accent="warning" delay={0.15} />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard title="Total Leads" value={stats.totalLeads} icon={Mail} accent="primary" delay={0.2} />
+        <StatCard title="New Leads" value={stats.newLeads} icon={Mail} accent="warning" delay={0.25} />
+        <StatCard title="Pending Offers" value={stats.pendingOffers} icon={FileText} accent="accent" delay={0.3} />
+        <StatCard title="Accepted Offers" value={stats.acceptedOffers} icon={FileText} accent="success" delay={0.35} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

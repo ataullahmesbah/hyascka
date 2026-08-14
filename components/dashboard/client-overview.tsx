@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { ShoppingBag, ClipboardList, Clock, ReceiptText, CheckCircle2 } from 'lucide-react';
+import { ShoppingBag, ClipboardList, Clock, ReceiptText, CheckCircle2, FileSignature, MessageSquare } from 'lucide-react';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { EmptyState } from '@/components/dashboard/empty-state';
@@ -18,6 +18,9 @@ interface ClientStats {
     pendingOrders: number;
     unpaidInvoices: number;
     completedServices: number;
+    pendingOffers: number;
+    acceptedOffers: number;
+    unreadMessages: number;
 }
 
 export function ClientOverview({ name }: { name: string }) {
@@ -26,7 +29,7 @@ export function ClientOverview({ name }: { name: string }) {
     if (loading) return <DashboardSkeleton />;
     if (error || !data) return <ErrorState message="Failed to load dashboard data" onRetry={refetch} />;
 
-    const hasAnyActivity = data.totalOrders > 0;
+    const hasAnyActivity = data.totalOrders > 0 || data.pendingOffers > 0 || data.acceptedOffers > 0;
 
     return (
         <div className="flex flex-col gap-6">
@@ -44,12 +47,15 @@ export function ClientOverview({ name }: { name: string }) {
                     }
                 />
             ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard title="Active Services" value={data.activeServices} icon={ShoppingBag} accent="success" delay={0} />
                     <StatCard title="Total Orders" value={data.totalOrders} icon={ClipboardList} accent="primary" delay={0.05} />
                     <StatCard title="Pending Orders" value={data.pendingOrders} icon={Clock} accent="warning" delay={0.1} />
                     <StatCard title="Unpaid Invoices" value={data.unpaidInvoices} icon={ReceiptText} accent="destructive" delay={0.15} />
                     <StatCard title="Completed Services" value={data.completedServices} icon={CheckCircle2} accent="accent" delay={0.2} />
+                    <StatCard title="Pending Offers" value={data.pendingOffers} icon={FileSignature} accent="warning" delay={0.25} />
+                    <StatCard title="Accepted Offers" value={data.acceptedOffers} icon={FileSignature} accent="success" delay={0.3} />
+                    <StatCard title="Unread Messages" value={data.unreadMessages} icon={MessageSquare} accent="primary" delay={0.35} />
                 </div>
             )}
         </div>

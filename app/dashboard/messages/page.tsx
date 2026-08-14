@@ -1,228 +1,221 @@
+// FILE: app/dashboard/messages/page.tsx
 'use client';
 
 import * as React from 'react';
-import { motion } from 'framer-motion';
-import { Mail, Search, Archive, Trash2, MoreHorizontal, Reply } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
+import { Loader2, Send, MessageSquare } from 'lucide-react';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { EmptyState } from '@/components/dashboard/empty-state';
-import { StatCard } from '@/components/dashboard/stat-card';
 import { ErrorState } from '@/components/dashboard/error-state';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { toast } from 'sonner';
+import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeletons';
+import { Card } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useDashboardData } from '@/hooks/use-dashboard-data';
 
-interface ContactMessage {
-  id: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  company: string | null;
-  service: string | null;
-  budget: string | null;
-  message: string;
-  status: string;
-  createdAt: string;
+interface Participant {
+  user: { id: string; name: string | null; email: string; image: string | null };
 }
 
-const statusColors: Record<string, string> = {
-  NEW: 'bg-primary/10 text-primary',
-  IN_PROGRESS: 'bg-amber-500/10 text-amber-500',
-  RESOLVED: 'bg-success/10 text-success',
-  ARCHIVED: 'bg-muted text-muted-foreground',
-};
+interface ConversationRow {
+  id: string;
+  subject: string | null;
+  contact: { id: string; name: string; email: string } | null;
+  participants: Participant[];
+  messages: Array<{ id: string; content: string; createdAt: string }>;
+  unreadCount: number;
+  updatedAt: string;
+}
 
-const statusOrder = ['NEW', 'IN_PROGRESS', 'RESOLVED', 'ARCHIVED'];
+interface MessageRow {
+  id: string;
+  content: string;
+  createdAt: string;
+  sender: { id: string; name: string | null; image: string | null };
+}
+
+interface ConversationDetail {
+  id: string;
+  contact: { name: string; email: string } | null;
+  participants: Participant[];
+  messages: MessageRow[];
+}
+
+function initials(name: string | null | undefined, fallback: string) {
+  return name
+    ? name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    : fallback[0]?.toUpperCase() ?? 'U';
+}
 
 export default function MessagesPage() {
-  const [search, setSearch] = React.useState('');
-  const [selected, setSelected] = React.useState<ContactMessage | null>(null);
-  const [statusFilter, setStatusFilter] = React.useState('ALL');
+  const { data: session } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeId = searchParams.get('c');
 
-  const { data: messages, loading, error, refetch } = useDashboardData<ContactMessage[]>('/api/dashboard/contacts');
+  const { data, loading, error, refetch } = useDashboardData<{ conversations: ConversationRow[] }>('/api/conversations');
+  const { data: detail, loading: detailLoading, refetch: refetchDetail } = useDashboardData<ConversationDetail>(
+    activeId ? `/api/conversations/${activeId}` : null
+  );
 
-  const filtered = (messages ?? []).filter((m) => {
-    const matchesSearch = m.name.toLowerCase().includes(search.toLowerCase()) || m.message.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || m.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const [draft, setDraft] = React.useState('');
+  const [sending, setSending] = React.useState(false);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    if (filtered.length > 0 && !selected) {
-      setSelected(filtered[0]);
+    if (activeId) {
+      fetch(`/api/conversations/${activeId}/read`, { method: 'POST' }).then(() => refetch());
     }
-  }, [messages, selected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
 
-  const updateStatus = async (id: string, status: string) => {
+  React.useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  }, [detail?.messages.length]);
+
+  const handleSend = async () => {
+    if (!activeId || !draft.trim()) return;
+    setSending(true);
     try {
-      const res = await fetch('/api/dashboard/contacts', {
-        method: 'PATCH',
+      const res = await fetch(`/api/conversations/${activeId}/messages`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status }),
+        body: JSON.stringify({ content: draft.trim() }),
       });
-      if (!res.ok) throw new Error('Failed to update');
-      refetch();
-      if (selected?.id === id) {
-        setSelected({ ...selected, status });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Unable to send message');
       }
-      toast.success(`Status updated to ${status.replace('_', ' ')}`);
-    } catch {
-      toast.error('Failed to update status');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      const res = await fetch(`/api/dashboard/contacts?id=${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete');
-      toast.success('Message deleted');
-      if (selected?.id === id) setSelected(null);
+      setDraft('');
+      refetchDetail();
       refetch();
-    } catch {
-      toast.error('Failed to delete');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Unable to send message.');
+    } finally {
+      setSending(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <PageHeader title="Contact Messages" description="Manage and respond to contact form submissions." />
-        <Card><CardContent className="p-5"><div className="h-96 animate-pulse rounded-lg bg-muted" /></CardContent></Card>
-      </div>
-    );
-  }
-  if (error) return <ErrorState message={error} onRetry={refetch} />;
+  if (loading) return <DashboardSkeleton />;
+  if (error || !data) return <ErrorState message="Failed to load conversations" onRetry={refetch} />;
+
+  const { conversations } = data;
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Contact Messages" description="Manage and respond to contact form submissions." />
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Messages" description={`${conversations.length} conversation${conversations.length === 1 ? '' : 's'}`} />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total" value={(messages ?? []).length} icon={Mail} accent="primary" />
-        <StatCard title="New" value={(messages ?? []).filter((m) => m.status === 'NEW').length} icon={Mail} accent="accent" />
-        <StatCard title="In Progress" value={(messages ?? []).filter((m) => m.status === 'IN_PROGRESS').length} icon={Mail} accent="warning" />
-        <StatCard title="Resolved" value={(messages ?? []).filter((m) => m.status === 'RESOLVED').length} icon={Mail} accent="success" />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardContent className="p-4">
-            <div className="mb-3 relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search messages..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-            </div>
-            <div className="mb-3 flex items-center gap-1 rounded-lg border border-border p-0.5">
-              {['ALL', 'NEW', 'IN_PROGRESS', 'RESOLVED'].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className={cn(
-                    'flex-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors',
-                    statusFilter === s ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {s === 'ALL' ? 'All' : s.replace('_', ' ')}
-                </button>
-              ))}
-            </div>
-            <div className="max-h-[500px] space-y-1 overflow-y-auto">
-              {filtered.length === 0 ? (
-                <EmptyState icon={Mail} title="No messages" description="No messages match your search." />
-              ) : (
-                filtered.map((msg, i) => (
-                  <motion.button
-                    key={msg.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.03 }}
-                    onClick={() => setSelected(msg)}
+      {conversations.length === 0 ? (
+        <EmptyState
+          icon={MessageSquare}
+          title="No conversations yet"
+          description="Start one from a lead's detail page with &quot;Message Customer&quot;."
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
+          <Card className="flex max-h-[600px] flex-col overflow-hidden p-0">
+            <ScrollArea className="flex-1">
+              {conversations.map((c) => {
+                const other = c.participants.find((p) => p.user.id !== session?.user?.id)?.user;
+                const last = c.messages[0];
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => router.push(`/dashboard/messages?c=${c.id}`)}
                     className={cn(
-                      'w-full rounded-lg p-3 text-left transition-colors',
-                      selected?.id === msg.id ? 'bg-primary/10' : 'hover:bg-secondary'
+                      'flex w-full items-start gap-3 border-b border-border p-4 text-left transition-colors hover:bg-secondary/60',
+                      activeId === c.id && 'bg-secondary'
                     )}
                   >
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">
-                          {msg.name.split(' ').map((n) => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{msg.name}</p>
-                        <p className="truncate text-xs text-muted-foreground">{msg.message.slice(0, 40)}...</p>
-                      </div>
-                      <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold', statusColors[msg.status])}>
-                        {msg.status.replace('_', ' ')}
-                      </span>
-                    </div>
-                  </motion.button>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardContent className="p-5">
-            {selected ? (
-              <div className="space-y-4">
-                <div className="flex items-start justify-between border-b border-border pb-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                        {selected.name.split(' ').map((n) => n[0]).join('')}
-                      </AvatarFallback>
+                    <Avatar className="h-9 w-9 shrink-0">
+                      <AvatarFallback>{initials(other?.name, other?.email ?? c.contact?.name ?? 'U')}</AvatarFallback>
                     </Avatar>
-                    <div>
-                      <h3 className="text-sm font-semibold">{selected.name}</h3>
-                      <p className="text-xs text-muted-foreground">{selected.email}</p>
-                      {selected.company && <p className="text-xs text-muted-foreground">{selected.company}</p>}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-sm font-medium">
+                          {other?.name ?? c.contact?.name ?? 'Unknown'}
+                        </span>
+                        {c.unreadCount > 0 && (
+                          <Badge className="h-5 shrink-0 px-1.5 text-[10px]">{c.unreadCount}</Badge>
+                        )}
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {last ? last.content : 'No messages yet'}
+                      </p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', statusColors[selected.status])}>
-                      {selected.status.replace('_', ' ')}
-                    </span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => updateStatus(selected.id, 'IN_PROGRESS')}>Mark In Progress</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => updateStatus(selected.id, 'RESOLVED')}>Mark Resolved</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => updateStatus(selected.id, 'ARCHIVED')}><Archive className="h-3.5 w-3.5" /> Archive</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer gap-2 text-destructive focus:text-destructive" onClick={() => handleDelete(selected.id)}><Trash2 className="h-3.5 w-3.5" /> Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{selected.message}</p>
-                </div>
-                {(selected.phone || selected.service || selected.budget) && (
-                  <div className="grid gap-2 rounded-xl border border-border bg-secondary/50 p-4 text-xs">
-                    {selected.phone && <p><span className="font-medium text-foreground">Phone:</span> {selected.phone}</p>}
-                    {selected.service && <p><span className="font-medium text-foreground">Service:</span> {selected.service}</p>}
-                    {selected.budget && <p><span className="font-medium text-foreground">Budget:</span> {selected.budget}</p>}
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">{new Date(selected.createdAt).toLocaleString()}</p>
+                  </button>
+                );
+              })}
+            </ScrollArea>
+          </Card>
+
+          <Card className="flex max-h-[600px] flex-col overflow-hidden p-0">
+            {!activeId ? (
+              <EmptyState icon={MessageSquare} title="Select a conversation" description="Pick one from the list to view messages." className="border-0" />
+            ) : detailLoading || !detail ? (
+              <div className="flex flex-1 items-center justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <EmptyState icon={Mail} title="Select a message" description="Choose a message from the list to view its details." />
+              <>
+                <div className="border-b border-border p-4">
+                  <p className="font-medium">{detail.contact?.name ?? 'Conversation'}</p>
+                  <p className="text-xs text-muted-foreground">{detail.contact?.email}</p>
+                </div>
+
+                <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
+                  <div className="flex flex-col gap-3">
+                    {detail.messages.map((m) => {
+                      const isMine = m.sender.id === session?.user?.id;
+                      return (
+                        <div key={m.id} className={cn('flex', isMine ? 'justify-end' : 'justify-start')}>
+                          <div
+                            className={cn(
+                              'max-w-[75%] rounded-2xl px-3.5 py-2 text-sm',
+                              isMine ? 'bg-primary text-primary-foreground' : 'bg-secondary'
+                            )}
+                          >
+                            <p>{m.content}</p>
+                            <p className={cn('mt-1 text-[10px]', isMine ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
+                              {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex items-end gap-2 border-t border-border p-3">
+                  <Textarea
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                      }
+                    }}
+                    placeholder="Type a message..."
+                    rows={1}
+                    className="min-h-9 flex-1 resize-none"
+                    disabled={sending}
+                  />
+                  <Button size="icon" onClick={handleSend} disabled={sending || !draft.trim()} className="h-9 w-9 shrink-0">
+                    {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

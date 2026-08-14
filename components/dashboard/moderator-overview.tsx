@@ -2,7 +2,8 @@
 'use client';
 
 import * as React from 'react';
-import { Inbox, MailWarning, MessagesSquare } from 'lucide-react';
+import Link from 'next/link';
+import { Inbox, ClipboardList, FileSignature, MessageSquare } from 'lucide-react';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { EmptyState } from '@/components/dashboard/empty-state';
@@ -13,8 +14,10 @@ import { Badge } from '@/components/ui/badge';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 
 interface ModeratorStats {
+    assignedLeads: number;
     openLeads: number;
-    newLeads: number;
+    offersNeedingAttention: number;
+    unreadMessages: number;
     recentLeads: Array<{
         id: string;
         name: string;
@@ -35,9 +38,11 @@ export function ModeratorOverview({ name }: { name: string }) {
         <div className="flex flex-col gap-6">
             <PageHeader title={`Welcome back, ${name}`} description="Here's what needs your attention." />
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <StatCard title="Open Leads" value={data.openLeads} icon={Inbox} accent="primary" delay={0} />
-                <StatCard title="New Leads" value={data.newLeads} icon={MailWarning} accent="warning" delay={0.05} />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard title="Assigned to Me" value={data.assignedLeads} icon={Inbox} accent="primary" delay={0} />
+                <StatCard title="Open Leads" value={data.openLeads} icon={ClipboardList} accent="warning" delay={0.05} />
+                <StatCard title="Offers Needing Attention" value={data.offersNeedingAttention} icon={FileSignature} accent="accent" delay={0.1} />
+                <StatCard title="Unread Messages" value={data.unreadMessages} icon={MessageSquare} accent="success" delay={0.15} />
             </div>
 
             <Card>
@@ -50,7 +55,11 @@ export function ModeratorOverview({ name }: { name: string }) {
                     ) : (
                         <div className="flex flex-col divide-y divide-border">
                             {data.recentLeads.map((lead) => (
-                                <div key={lead.id} className="flex items-center justify-between gap-4 py-3">
+                                <Link
+                                    key={lead.id}
+                                    href={`/dashboard/leads/${lead.id}`}
+                                    className="flex items-center justify-between gap-4 py-3 transition-colors hover:text-primary"
+                                >
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-medium">{lead.name}</p>
                                         <p className="truncate text-xs text-muted-foreground">{lead.email}</p>
@@ -58,21 +67,12 @@ export function ModeratorOverview({ name }: { name: string }) {
                                     <Badge variant="outline" className="shrink-0 capitalize">
                                         {lead.status.toLowerCase().replace('_', ' ')}
                                     </Badge>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     )}
                 </CardContent>
             </Card>
-
-            {/* Messages, Support Tickets, and Meetings are real requirements for
-          this dashboard but those models don't exist yet — an honest
-          placeholder instead of fake counts. */}
-            <EmptyState
-                icon={MessagesSquare}
-                title="Messages & support tools are on the way"
-                description="Client messaging, support tickets, and meeting scheduling will appear here once those modules ship in an upcoming phase."
-            />
         </div>
     );
 }

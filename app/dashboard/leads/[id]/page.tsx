@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Loader2, Mail, Phone, FileText, ArrowRight } from 'lucide-react';
+import { Loader2, Mail, Phone, FileText, ArrowRight, MessageSquare } from 'lucide-react';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { ErrorState } from '@/components/dashboard/error-state';
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeletons';
@@ -52,6 +52,29 @@ export default function LeadDetailPage() {
     const { data: lead, loading, error, refetch } = useDashboardData<LeadDetail>(`/api/dashboard/contacts/${params.id}`);
     const { data: usersData } = useDashboardData<UsersResponse>('/api/dashboard/users');
     const [saving, setSaving] = React.useState(false);
+    const [messaging, setMessaging] = React.useState(false);
+
+    const handleMessageCustomer = async () => {
+        if (!lead?.user) return;
+        setMessaging(true);
+        try {
+            const res = await fetch('/api/conversations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contactId: lead.id, clientId: lead.user.id }),
+            });
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body.error ?? 'Unable to start conversation');
+            }
+            const { conversation } = await res.json();
+            router.push(`/dashboard/messages?c=${conversation.id}`);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Unable to start conversation.');
+        } finally {
+            setMessaging(false);
+        }
+    };
 
     const staff = (usersData?.users ?? []).filter((u) => STAFF_ROLES.includes(u.role.name));
 
@@ -86,13 +109,25 @@ export default function LeadDetailPage() {
                 title={lead.name}
                 description={lead.isCustomRequest ? 'Custom service request' : 'Contact inquiry'}
                 action={
-                    <Button
-                        onClick={() => router.push(`/dashboard/offers/new?contactId=${lead.id}`)}
-                        className="gap-2"
-                    >
-                        Create Custom Offer
-                        <ArrowRight className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={handleMessageCustomer}
+                            disabled={!lead.user || messaging}
+                            title={!lead.user ? "This lead doesn't have a registered account yet" : undefined}
+                            className="gap-2"
+                        >
+                            {messaging ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+                            Message Customer
+                        </Button>
+                        <Button
+                            onClick={() => router.push(`/dashboard/offers/new?contactId=${lead.id}`)}
+                            className="gap-2"
+                        >
+                            Create Custom Offer
+                            <ArrowRight className="h-4 w-4" />
+                        </Button>
+                    </div>
                 }
             />
 

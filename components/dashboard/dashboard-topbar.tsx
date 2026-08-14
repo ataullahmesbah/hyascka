@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Bell, ChevronDown, LogOut, User, Settings, Sun, Moon } from 'lucide-react';
+import { Search, ChevronDown, LogOut, User, Settings, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,6 +20,7 @@ import {
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { Breadcrumb } from './breadcrumb';
+import { NotificationBell } from './notification-bell';
 
 interface DashboardTopbarProps {
   onMenuClick: () => void;
@@ -36,7 +37,6 @@ export function DashboardTopbar({ onMenuClick, user }: DashboardTopbarProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
-  const [notifications, setNotifications] = React.useState(3);
 
   React.useEffect(() => setMounted(true), []);
 
@@ -108,47 +108,7 @@ export function DashboardTopbar({ onMenuClick, user }: DashboardTopbarProps) {
           </button>
         )}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-              <Bell className="h-4 w-4" />
-              {notifications > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-                  {notifications}
-                </span>
-              )}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            <DropdownMenuLabel className="flex items-center justify-between">
-              <span>Notifications</span>
-              {notifications > 0 && (
-                <button
-                  onClick={() => setNotifications(0)}
-                  className="text-xs font-normal text-primary hover:underline"
-                >
-                  Mark all read
-                </button>
-              )}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {['New user registered', 'New contact message', 'Blog post published'].slice(0, notifications).map((msg, i) => (
-              <DropdownMenuItem key={i} className="flex flex-col items-start gap-1 py-2">
-                <span className="text-sm">{msg}</span>
-                <span className="text-xs text-muted-foreground">{i + 1}h ago</span>
-              </DropdownMenuItem>
-            ))}
-            {notifications === 0 && (
-              <p className="px-2 py-4 text-center text-sm text-muted-foreground">No new notifications</p>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/notifications" className="cursor-pointer">
-                View all notifications
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

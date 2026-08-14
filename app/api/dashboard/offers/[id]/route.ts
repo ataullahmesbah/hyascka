@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/dashboard-auth';
 import { can, type Role } from '@/lib/permissions';
 import { notify } from '@/lib/notifications';
+import { sendEmail, offerSentEmail } from '@/lib/email';
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
     try {
@@ -86,6 +87,27 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
                 message: `${offer.currency} ${Number(offer.total).toLocaleString()}`,
                 link: `/dashboard/offers/${offer.id}`,
             });
+
+            try {
+                const client = await prisma.user.findUnique({ where: { id: offer.clientId } });
+                if (client) {
+                    await sendEmail(
+                        offerSentEmail({
+                            to: client.email,
+                            clientName: client.name ?? 'there',
+                            offerTitle: offer.title,
+                            offerNumber: offer.offerNumber,
+                            total: Number(offer.total).toLocaleString(),
+                            currency: offer.currency,
+                            validUntil: offer.validUntil?.toLocaleDateString(),
+                        })
+                    );
+                }
+            } catch (emailError) {
+                // Email failure must never undo the offer being sent — the
+                // database notification above already succeeded.
+                console.error('[offers] send-notification email failed:', emailError);
+            }
 
             return NextResponse.json(updated);
         }

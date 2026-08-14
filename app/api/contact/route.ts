@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { contactSchema } from '@/lib/validation';
 import { sendEmail, contactNotificationEmail } from '@/lib/email';
+import { notify } from '@/lib/notifications';
 
 export async function POST(req: Request) {
   try {
@@ -33,7 +34,31 @@ export async function POST(req: Request) {
       },
     });
 
-    await sendEmail(contactNotificationEmail(contactData));
+    // Notify every staff member who can work leads (SUPER_ADMIN/ADMIN/
+    // MODERATOR) — not a broadcast to all users, just the relevant team.
+    const staff = await prisma.user.findMany({
+      where: { role: { name: { in: ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] } } },
+      select: { id: true },
+    });
+    await Promise.all(
+      staff.map((s) =>
+        notify(prisma, {
+          userId: s.id,
+          type: 'NEW_LEAD',
+          title: `New lead: ${contact.name}`,
+          message: contact.message.slice(0, 100),
+          link: `/dashboard/leads/${contact.id}`,
+        })
+      )
+    );
+
+    // Email failure must never roll back the lead/notification that's
+    // already saved (Phase 3.1 §16) — log and move on.
+    try {
+      await sendEmail(contactNotificationEmail(contactData));
+    } catch (emailError) {
+      console.error('[contact] notification email failed:', emailError);
+    }
 
     return NextResponse.json(
       { message: 'Contact form submitted successfully', id: contact.id },

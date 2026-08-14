@@ -159,4 +159,55 @@ export function newsletterConfirmationEmail(to: string): EmailTemplate {
   };
 }
 
+export function offerSentEmail(params: {
+  clientName: string;
+  to: string;
+  offerTitle: string;
+  offerNumber: string;
+  total: string;
+  currency: string;
+  validUntil?: string;
+}): EmailTemplate {
+  return {
+    to: params.to,
+    subject: `New offer from HYASCKA: ${params.offerTitle}`,
+    html: `
+      <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px;">
+        <h1 style="font-size: 24px; font-weight: 700; color: #0f172a;">You have a new offer</h1>
+        <p style="font-size: 16px; color: #475569; line-height: 1.6;">Hi ${params.clientName}, HYASCKA has prepared a custom offer for you.</p>
+        <table style="width: 100%; font-size: 16px; color: #475569; line-height: 1.8; margin-top: 16px;">
+          <tr><td style="font-weight: 600; width: 140px;">Offer:</td><td>${params.offerTitle}</td></tr>
+          <tr><td style="font-weight: 600;">Reference:</td><td>${params.offerNumber}</td></tr>
+          <tr><td style="font-weight: 600;">Total:</td><td>${params.currency} ${params.total}</td></tr>
+          ${params.validUntil ? `<tr><td style="font-weight: 600;">Valid until:</td><td>${params.validUntil}</td></tr>` : ''}
+        </table>
+        <p style="font-size: 16px; color: #475569; line-height: 1.6; margin-top: 24px;">Log in to your HYASCKA dashboard to review and respond.</p>
+      </div>
+    `,
+  };
+}
+
+export function offerResponseStaffEmail(params: {
+  to: string;
+  staffName: string;
+  offerTitle: string;
+  offerNumber: string;
+  accepted: boolean;
+  rejectReason?: string;
+}): EmailTemplate {
+  return {
+    to: params.to,
+    subject: `Offer ${params.accepted ? 'accepted' : 'rejected'}: ${params.offerTitle}`,
+    html: `
+      <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px;">
+        <h1 style="font-size: 24px; font-weight: 700; color: #0f172a;">
+          Offer ${params.accepted ? 'Accepted' : 'Rejected'}
+        </h1>
+        <p style="font-size: 16px; color: #475569; line-height: 1.6;">Hi ${params.staffName}, your offer <strong>${params.offerTitle}</strong> (${params.offerNumber}) was ${params.accepted ? 'accepted' : 'rejected'} by the client.</p>
+        ${params.rejectReason ? `<p style="font-size: 16px; color: #475569; line-height: 1.6;">Reason: ${params.rejectReason}</p>` : ''}
+      </div>
+    `,
+  };
+}
+
 export { sendEmail };

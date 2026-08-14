@@ -18,7 +18,20 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const [userCount, projectCount, blogCount, messageCount, activeSubscribers, publishedBlogs, recentUsers, recentBlogs, recentContacts] = await Promise.all([
+    const [
+      userCount,
+      projectCount,
+      blogCount,
+      messageCount,
+      activeSubscribers,
+      publishedBlogs,
+      recentUsers,
+      recentBlogs,
+      recentContacts,
+      newLeads,
+      pendingOffers,
+      acceptedOffers,
+    ] = await Promise.all([
       prisma.user.count(),
       prisma.project.count(),
       prisma.blog.count(),
@@ -39,6 +52,9 @@ export async function GET() {
         take: 5,
         orderBy: { createdAt: 'desc' },
       }),
+      prisma.contact.count({ where: { status: 'NEW' } }),
+      prisma.customOffer.count({ where: { status: { in: ['SENT', 'VIEWED'] } } }),
+      prisma.customOffer.count({ where: { status: 'ACCEPTED' } }),
     ]);
 
     const totalDrafts = blogCount - publishedBlogs;
@@ -52,6 +68,10 @@ export async function GET() {
         subscribers: activeSubscribers,
         publishedBlogs,
         draftBlogs: totalDrafts,
+        totalLeads: messageCount,
+        newLeads,
+        pendingOffers,
+        acceptedOffers,
       },
       recentUsers,
       recentBlogs,
