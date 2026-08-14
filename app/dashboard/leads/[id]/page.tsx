@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Loader2, Mail, Phone, FileText, ArrowRight, MessageSquare } from 'lucide-react';
+import { Loader2, Mail, Phone, FileText, ArrowRight, MessageSquare, UserPlus, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { ErrorState } from '@/components/dashboard/error-state';
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeletons';
@@ -37,8 +37,9 @@ interface LeadDetail {
     priority: string;
     isCustomRequest: boolean;
     assignedTo: { id: string; name: string | null; email: string } | null;
-    user: { id: string; name: string | null; email: string } | null;
+    user: { id: string; name: string | null; email: string; role: { name: string } } | null;
     offers: Array<{ id: string; offerNumber: string; title: string; status: string; total: string; currency: string }>;
+    invitations: Array<{ id: string; email: string; expiresAt: string; usedAt: string | null; createdAt: string }>;
     createdAt: string;
 }
 
@@ -53,6 +54,25 @@ export default function LeadDetailPage() {
     const { data: usersData } = useDashboardData<UsersResponse>('/api/dashboard/users');
     const [saving, setSaving] = React.useState(false);
     const [messaging, setMessaging] = React.useState(false);
+    const [inviting, setInviting] = React.useState(false);
+
+    const handleInviteClient = async () => {
+        if (!lead) return;
+        setInviting(true);
+        try {
+            const res = await fetch(`/api/dashboard/contacts/${lead.id}/invite`, { method: 'POST' });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(body.error ?? 'Unable to invite client');
+            }
+            toast.success(body.message ?? 'Invitation sent.');
+            refetch();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Unable to invite client.');
+        } finally {
+            setInviting(false);
+        }
+    };
 
     const handleMessageCustomer = async () => {
         if (!lead?.user) return;
@@ -168,6 +188,52 @@ export default function LeadDetailPage() {
                 </Card>
 
                 <Card className="flex flex-col gap-4 p-6">
+                    <div className="flex flex-col gap-2">
+                        <Label>Client Account</Label>
+                        {lead.user ? (
+                            <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 p-3 text-sm">
+                                <ShieldCheck className="h-4 w-4 shrink-0 text-success" />
+                                <div>
+                                    <div className="font-medium">Active</div>
+                                    <div className="text-xs text-muted-foreground">{lead.user.name ?? lead.user.email}</div>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                {(() => {
+                                    const invitation = lead.invitations[0];
+                                    const isExpired = invitation && new Date(invitation.expiresAt) < new Date();
+                                    const isPending = invitation && !invitation.usedAt && !isExpired;
+                                    return (
+                                        <div className="flex flex-col gap-2 rounded-lg border border-border bg-secondary/40 p-3 text-sm">
+                                            <span className="text-muted-foreground">
+                                                {isPending
+                                                    ? `Invitation sent — expires ${new Date(invitation.expiresAt).toLocaleDateString()}`
+                                                    : isExpired
+                                                        ? 'Previous invitation expired'
+                                                        : 'Not created'}
+                                            </span>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleInviteClient}
+                                                disabled={inviting}
+                                                className="w-full gap-2"
+                                            >
+                                                {inviting ? (
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                ) : (
+                                                    <UserPlus className="h-3.5 w-3.5" />
+                                                )}
+                                                {isPending ? 'Resend Invitation' : 'Invite Client'}
+                                            </Button>
+                                        </div>
+                                    );
+                                })()}
+                            </>
+                        )}
+                    </div>
+
                     <div className="flex flex-col gap-2">
                         <Label>Status</Label>
                         <Select value={lead.status} onValueChange={(v) => updateLead({ status: v })} disabled={saving}>

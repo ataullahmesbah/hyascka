@@ -103,6 +103,7 @@ model User {
   conversationParticipant ConversationParticipant[]
   sentMessages           Message[]
   notifications          Notification[]
+  sentInvitations        ClientInvitation[]        @relation("InvitationInvitedBy")
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -501,12 +502,40 @@ model Contact {
   assignedTo     User?           @relation("ContactAssignedTo", fields: [assignedToId], references: [id])
   offers         CustomOffer[]
   conversations  Conversation[]
+  invitations    ClientInvitation[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   @@index([status])
   @@index([email])
   @@index([assignedToId])
+}
+
+// ─────────────────────────────────────
+// CRM — Client Invitation
+// ─────────────────────────────────────
+
+// A guest Lead (Contact) has no User account, so it can't securely receive
+// Offers/Orders/Messages. This is the invite that converts one: staff sends
+// it to the lead's email, the recipient sets a password, and a real CLIENT
+// User is created and linked back to the lead — same secure-token pattern
+// as PasswordResetToken (single-use, expiring, looked up by opaque token,
+// never a trusted client-supplied id).
+model ClientInvitation {
+  id          String    @id @default(cuid())
+  email       String
+  token       String    @unique
+  leadId      String
+  lead        Contact   @relation(fields: [leadId], references: [id])
+  invitedById String
+  invitedBy   User      @relation("InvitationInvitedBy", fields: [invitedById], references: [id])
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email])
+  @@index([leadId])
+  @@index([token])
 }
 
 enum OfferStatus {
@@ -693,6 +722,3 @@ model SiteSettings {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
-
-
-

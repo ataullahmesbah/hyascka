@@ -13,8 +13,13 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
             where: { id: params.id },
             include: {
                 assignedTo: { select: { id: true, name: true, email: true } },
-                user: { select: { id: true, name: true, email: true } },
+                user: { select: { id: true, name: true, email: true, role: { select: { name: true } } } },
                 offers: { select: { id: true, offerNumber: true, title: true, status: true, total: true, currency: true } },
+                invitations: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: { id: true, email: true, expiresAt: true, usedAt: true, createdAt: true },
+                },
             },
         });
 

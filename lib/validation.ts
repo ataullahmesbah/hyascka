@@ -41,6 +41,19 @@ export const resetPasswordSchema = z.object({
   path: ['confirmPassword'],
 });
 
+export const acceptInvitationSchema = z.object({
+  token: z.string().min(1, 'Token is required'),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(50, 'Name is too long'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(passwordRegex, 'Password must include uppercase, lowercase, number, and special character'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+
 // ─────────────────────────────────────
 // Contact Schema
 // ─────────────────────────────────────
@@ -106,6 +119,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;
 export type ContactInput = z.infer<typeof contactSchema>;
 export type NewsletterInput = z.infer<typeof newsletterSchema>;
 export type BlogInput = z.infer<typeof blogSchema>;

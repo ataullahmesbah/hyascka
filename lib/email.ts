@@ -210,4 +210,37 @@ export function offerResponseStaffEmail(params: {
   };
 }
 
+export function clientInvitationEmail(params: {
+  to: string;
+  leadName: string;
+  invitedByName: string;
+  token: string;
+  expiresInDays: number;
+}): EmailTemplate {
+  const url = `${process.env.APP_URL ?? process.env.NEXTAUTH_URL}/accept-invite?token=${params.token}`;
+  return {
+    to: params.to,
+    subject: 'You have been invited to your HYASCKA client account',
+    html: `
+      <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px;">
+        <h1 style="font-size: 24px; font-weight: 700; color: #0f172a;">You're invited to HYASCKA</h1>
+        <p style="font-size: 16px; color: #475569; line-height: 1.6;">Hi ${params.leadName},</p>
+        <p style="font-size: 16px; color: #475569; line-height: 1.6;">
+          ${params.invitedByName} at HYASCKA has invited you to set up a client account so you can
+          securely review your custom offer, track your orders, and message our team directly.
+        </p>
+        <a href="${url}"
+           style="display: inline-block; margin-top: 16px; padding: 12px 24px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 12px; font-weight: 600;">
+          Set Up My Account
+        </a>
+        <p style="font-size: 14px; color: #94a3b8; margin-top: 24px;">
+          This invitation link expires in ${params.expiresInDays} days and can only be used once.
+          If you weren't expecting this invitation, you can safely ignore this email — no account
+          will be created without you completing the setup.
+        </p>
+      </div>
+    `,
+  };
+}
+
 export { sendEmail };

@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Check, Mail, MapPin, Clock, Phone, Sparkles, Globe, Linkedin, Facebook, Github } from 'lucide-react';
+import { toast } from 'sonner';
+import { ArrowRight, Check, Loader2, Mail, MapPin, Clock, Phone, Sparkles, Globe, Linkedin, Facebook, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,12 +27,70 @@ const interestOptions = [
 
 export function Contact() {
   const [submitted, setSubmitted] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
   const [interest, setInterest] = React.useState('AI Agents');
   const [budget, setBudget] = React.useState('$10k – $50k');
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSubmitted(true);
+    if (submitting) return;
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    const payload = {
+      name: (formData.get('name') as string)?.trim(),
+      email: (formData.get('email') as string)?.trim(),
+      phone: (formData.get('phone') as string)?.trim() || undefined,
+      company: (formData.get('company') as string)?.trim() || undefined,
+      message: (formData.get('message') as string)?.trim(),
+      service: interest || undefined,
+      budget: budget || undefined,
+    };
+
+    // Client-side guard only — the server independently re-validates every
+    // field with the same contactSchema, since this payload can't be trusted.
+    if (!payload.name || payload.name.length < 2) {
+      toast.error('Please enter your full name.');
+      return;
+    }
+    if (!payload.email) {
+      toast.error('Please enter your email address.');
+      return;
+    }
+    if (!payload.message || payload.message.length < 10) {
+      toast.error('Please tell us a bit more about your project (10+ characters).');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        const message =
+          result?.details?.fieldErrors &&
+          Object.values(result.details.fieldErrors as Record<string, string[]>).flat()[0];
+        toast.error(message || result?.error || 'Something went wrong. Please try again.');
+        return;
+      }
+
+      setSubmitted(true);
+      toast.success('Brief received — we\'ll be in touch within one business day.');
+      form.reset();
+      setInterest('AI Agents');
+      setBudget('$10k – $50k');
+    } catch {
+      toast.error('Network error — please check your connection and try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -150,10 +209,20 @@ export function Contact() {
                   <Button
                     type="submit"
                     size="lg"
+                    disabled={submitting}
                     className="group mt-1 h-12 gap-2 self-start rounded-btn px-6 text-base"
                   >
-                    Send project brief
-                    <ArrowRight className="h-4.5 w-4.5 transition-transform group-hover:translate-x-1" />
+                    {submitting ? (
+                      <>
+                        Sending
+                        <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                      </>
+                    ) : (
+                      <>
+                        Send project brief
+                        <ArrowRight className="h-4.5 w-4.5 transition-transform group-hover:translate-x-1" />
+                      </>
+                    )}
                   </Button>
                   <p className="text-xs text-muted-foreground">
                     By submitting, you agree to be contacted about your inquiry. We never share your information.

@@ -51,6 +51,7 @@ export const PERMISSIONS = {
   'leads.read_own': ['USER'] as Role[], // a USER may see contact requests they personally submitted while logged in
   'leads.update': ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] as Role[], // status changes
   'leads.assign': ['SUPER_ADMIN', 'ADMIN'] as Role[],
+  'leads.inviteClient': ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] as Role[], // same roles as offers.create — inviting a client is part of the same offer workflow
 
   // --- Custom Offers (Phase 3) ---
   'offers.read': ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] as Role[],
