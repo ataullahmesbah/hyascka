@@ -58,7 +58,7 @@ export default async function ServicesPage() {
             <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">
               No services are published yet — please{' '}
               <Link href="/contact" className="text-primary hover:underline">get in touch</Link>{' '}
-              and we'll help you scope the right engagement.
+              and we&apos;ll help you scope the right engagement.
             </div>
           ) : (
             <div className="flex flex-col gap-16">
