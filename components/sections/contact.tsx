@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { ArrowRight, Check, Loader2, Mail, MapPin, Clock, Phone, Sparkles, Globe, Linkedin, Facebook, Github } from 'lucide-react';
@@ -26,10 +27,30 @@ const interestOptions = [
 ];
 
 export function Contact() {
+  const searchParams = useSearchParams();
+  const requestedSlug = searchParams.get('service');
+  const isCustomQuote = searchParams.get('custom') === 'true';
+
   const [submitted, setSubmitted] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [interest, setInterest] = React.useState('AI Agents');
   const [budget, setBudget] = React.useState('$10k – $50k');
+  const [requestedServiceTitle, setRequestedServiceTitle] = React.useState<string | null>(null);
+
+  // Coming from a service detail page's "Request Custom Quote" — fetch the
+  // real service title (not just the slug) so both the on-page banner and
+  // the submitted lead read cleanly for staff.
+  React.useEffect(() => {
+    if (!requestedSlug) return;
+    fetch(`/api/services/${encodeURIComponent(requestedSlug)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((service) => {
+        if (service?.title) setRequestedServiceTitle(service.title);
+      })
+      .catch(() => {
+        /* non-critical — form still works without the prefilled banner */
+      });
+  }, [requestedSlug]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -44,8 +65,9 @@ export function Contact() {
       phone: (formData.get('phone') as string)?.trim() || undefined,
       company: (formData.get('company') as string)?.trim() || undefined,
       message: (formData.get('message') as string)?.trim(),
-      service: interest || undefined,
+      service: requestedServiceTitle ?? interest ?? undefined,
       budget: budget || undefined,
+      isCustomRequest: isCustomQuote || undefined,
     };
 
     // Client-side guard only — the server independently re-validates every
@@ -110,11 +132,11 @@ export function Contact() {
                   Start the conversation
                 </span>
                 <h2 className="mt-5 font-display text-3xl font-semibold leading-tight tracking-tight text-balance sm:text-4xl">
-                  Let's build something{' '}
+                  Let&apos;s build something{' '}
                   <span className="text-gradient-primary">intelligent</span> together.
                 </h2>
                 <p className="mt-4 max-w-md text-base leading-relaxed text-muted-foreground text-pretty">
-                  Tell us about your business and the problem you want to solve. We'll get
+                  Tell us about your business and the problem you want to solve. We&apos;ll get
                   back within one business day with a clear path forward.
                 </p>
               </div>
@@ -154,6 +176,11 @@ export function Contact() {
                 <SuccessState onReset={() => setSubmitted(false)} />
               ) : (
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                  {isCustomQuote && (
+                    <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground/90">
+                      Requesting a custom quote{requestedServiceTitle ? <> for <strong>{requestedServiceTitle}</strong></> : ''} — tell us more below and our team will follow up with a tailored offer.
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                     <Field label="Full name" htmlFor="name">
                       <Input id="name" name="name" placeholder="Jane Doe" required />

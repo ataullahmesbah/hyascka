@@ -51,7 +51,7 @@ export default function MyServicesPage() {
                     description="Services you purchase will show up here once your order is confirmed."
                     action={
                         <Button asChild>
-                            <Link href="/service">Browse Services</Link>
+                            <Link href="/services">Browse Services</Link>
                         </Button>
                     }
                 />

@@ -1,31 +1,43 @@
+// FILE: app/services/page.tsx
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import { PageHero } from '@/components/page-hero';
 import { CTASection } from '@/components/cta-section';
-import { Services } from '@/components/sections/services';
-import { Process } from '@/components/sections/process';
-import { Technologies } from '@/components/sections/technologies';
-import { FAQ } from '@/components/sections/faq';
-import { Reveal } from '@/components/reveal';
-import { SectionHeader } from '@/components/section-header';
-import { CheckCircle2 } from 'lucide-react';
-import { allServicesList } from '@/constants/services';
+import { prisma } from '@/lib/prisma';
 
 export const metadata: Metadata = {
   title: 'Services — HYASCKA',
   description:
-    'AI Agents, AI Automation, Custom Software, Website Development, Ecommerce, SEO, Branding, Digital Marketing, Enterprise Solutions, and API Integration by HYASCKA.',
+    'Browse HYASCKA services by category — real-time availability and pricing, pulled straight from our system.',
 };
 
-const benefits = [
-  'Senior-only engineering team — no hand-offs',
-  'Production-grade AI with guardrails and observability',
-  'Weekly demos with working software',
-  'Clean, documented code your team can own',
-  'Scalable architecture designed for growth',
-  'Post-launch support and optimization',
-];
+export const dynamic = 'force-dynamic';
 
-export default function ServicesPage() {
+async function getGroupedServices() {
+  const categories = await prisma.serviceCategory.findMany({
+    where: { isActive: true },
+    orderBy: { order: 'asc' },
+    include: {
+      services: {
+        where: { status: 'PUBLISHED' },
+        orderBy: { order: 'asc' },
+      },
+    },
+  });
+
+  const uncategorized = await prisma.service.findMany({
+    where: { status: 'PUBLISHED', categoryId: null },
+    orderBy: { order: 'asc' },
+  });
+
+  return { categories: categories.filter((c: { services: unknown[] }) => c.services.length > 0), uncategorized };
+}
+
+export default async function ServicesPage() {
+  const { categories, uncategorized } = await getGroupedServices();
+  const isEmpty = categories.length === 0 && uncategorized.length === 0;
+
   return (
     <>
       <PageHero
@@ -37,67 +49,45 @@ export default function ServicesPage() {
             <span className="text-gradient-primary">concept to scale</span>
           </>
         }
-        description="We design and ship intelligent systems across the entire stack — whether you need a single AI agent or a complete digital transformation."
+        description="Real-time availability and pricing, pulled straight from our system — grouped by what you're trying to solve."
       />
 
-      {/* Services Grid (reuses homepage component) */}
-      <Services />
-
-      {/* All Services Detailed List */}
-      <section className="relative py-24 sm:py-28 lg:py-32">
+      <section className="relative py-16 sm:py-20">
         <div className="mx-auto max-w-[1280px] px-5 tab:px-8 lg:px-12">
-          <SectionHeader
-            eyebrow="Service Details"
-            title={<>Every service, <span className="text-gradient-primary">explained</span></>}
-            description="A complete breakdown of what we offer — from AI agents to digital marketing and everything in between."
-          />
-          <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2">
-            {allServicesList.map((s, i) => (
-              <Reveal key={s.title} delay={i * 0.04}>
-                <div className="group flex h-full items-start gap-4 rounded-2xl border border-border bg-card p-6 shadow-soft transition-all duration-300 hover:border-primary/40 hover:shadow-soft-lg">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-btn bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                    <s.icon className="h-6 w-6" />
+          {isEmpty ? (
+            <div className="rounded-2xl border border-border bg-card p-12 text-center text-muted-foreground">
+              No services are published yet — please{' '}
+              <Link href="/contact" className="text-primary hover:underline">get in touch</Link>{' '}
+              and we'll help you scope the right engagement.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-16">
+              {categories.map((category: { id: string; name: string; description: string | null; services: ServiceCardData[] }) => (
+                <div key={category.id}>
+                  <div className="mb-6">
+                    <h2 className="font-display text-2xl font-semibold tracking-tight">{category.name}</h2>
+                    {category.description && (
+                      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{category.description}</p>
+                    )}
                   </div>
-                  <div>
-                    <h3 className="font-display text-lg font-semibold tracking-tight">{s.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground text-pretty">{s.desc}</p>
-                  </div>
+                  <ServiceGrid services={category.services} />
                 </div>
-              </Reveal>
-            ))}
-          </div>
+              ))}
+
+              {uncategorized.length > 0 && (
+                <div>
+                  {categories.length > 0 && (
+                    <div className="mb-6">
+                      <h2 className="font-display text-2xl font-semibold tracking-tight">Other Services</h2>
+                    </div>
+                  )}
+                  <ServiceGrid services={uncategorized} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
-
-      {/* Benefits */}
-      <section className="relative py-24 sm:py-28 lg:py-32 bg-surface-secondary">
-        <div className="mx-auto max-w-[1280px] px-5 tab:px-8 lg:px-12">
-          <SectionHeader
-            eyebrow="Benefits"
-            title={<>Why teams choose to <span className="text-gradient-primary">build with us</span></>}
-            description="Every engagement comes with commitments that de-risk your project and ensure a successful outcome."
-          />
-          <div className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {benefits.map((b, i) => (
-              <Reveal key={b} delay={i * 0.05}>
-                <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-5 shadow-soft">
-                  <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
-                  <span className="text-sm font-medium text-foreground/85">{b}</span>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Process */}
-      <Process />
-
-      {/* Technology Stack */}
-      <Technologies />
-
-      {/* FAQ */}
-      <FAQ />
 
       <CTASection
         title={<>Let&apos;s scope your <span className="text-gradient-primary">next build</span></>}
@@ -107,5 +97,39 @@ export default function ServicesPage() {
         secondaryHref="/portfolio"
       />
     </>
+  );
+}
+
+type ServiceCardData = {
+  id: string;
+  slug: string;
+  title: string;
+  shortDescription: string | null;
+  price: unknown;
+  currency: string;
+};
+
+function ServiceGrid({ services }: { services: ServiceCardData[] }) {
+  return (
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {services.map((s) => (
+        <Link
+          key={s.id}
+          href={`/services/${s.slug}`}
+          className="group flex flex-col rounded-2xl border border-border bg-card p-6 shadow-soft transition-all duration-300 hover:border-primary/40 hover:shadow-soft-lg"
+        >
+          <h3 className="font-display text-lg font-semibold">{s.title}</h3>
+          {s.shortDescription && (
+            <p className="mt-2 text-sm text-muted-foreground">{s.shortDescription}</p>
+          )}
+          <div className="mt-auto flex items-center justify-between pt-6">
+            <span className="font-display text-base font-semibold">
+              {s.price !== null ? `${s.currency} ${Number(s.price).toLocaleString()}` : 'Custom quote'}
+            </span>
+            <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+          </div>
+        </Link>
+      ))}
+    </div>
   );
 }

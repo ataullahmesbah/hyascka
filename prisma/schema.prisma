@@ -264,9 +264,20 @@ model ServiceCategory {
   name        String    @unique
   slug        String    @unique
   description String?
+  // "Service Group" in the dashboard UI — same model, reused rather than
+  // duplicated (see Phase 3.5 schema-safety note). order/isActive are new:
+  // existing rows default to order=0, isActive=true, so nothing already
+  // stored needs to change.
+  order       Int       @default(0)
+  isActive    Boolean   @default(true)
   services    Service[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+enum ServiceAcquisitionType {
+  FIXED_PRICE
+  CUSTOM_QUOTE
 }
 
 model Service {
@@ -282,10 +293,9 @@ model Service {
   featured         Boolean          @default(false)
   categoryId       String?
   category         ServiceCategory? @relation(fields: [categoryId], references: [id])
-  // Nullable: a service without a price is not yet purchasable — the
-  // checkout flow requires both price and currency to be set.
   price            Decimal?         @db.Decimal(10, 2)
   currency         String           @default("USD")
+  acquisitionType  ServiceAcquisitionType @default(FIXED_PRICE)
   deliveryTime     String?
   status           ServiceStatus    @default(PUBLISHED)
   seoTitle         String?

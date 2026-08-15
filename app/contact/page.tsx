@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { PageHero } from '@/components/page-hero';
 import { Contact } from '@/components/sections/contact';
 import { FAQ } from '@/components/sections/faq';
@@ -23,7 +24,9 @@ export default function ContactPage() {
         }
         description="Tell us about your business and the problem you want to solve. We'll get back within one business day with a clear path forward."
       />
-      <Contact />
+      <Suspense fallback={null}>
+        <Contact />
+      </Suspense>
       <FAQ />
     </>
   );

@@ -17,6 +17,7 @@ const serviceSchema = z.object({
   categoryId: z.string().optional(),
   price: z.number().positive().optional(),
   currency: z.string().min(3).max(3).default('USD'),
+  acquisitionType: z.enum(['FIXED_PRICE', 'CUSTOM_QUOTE']).default('FIXED_PRICE'),
   deliveryTime: z.string().optional(),
   status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).default('PUBLISHED'),
   seoTitle: z.string().max(70).optional(),

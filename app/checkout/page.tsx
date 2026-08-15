@@ -92,7 +92,7 @@ export default function CheckoutPage() {
                 <h1 className="font-display text-xl font-semibold">Service not found</h1>
                 <p className="mt-2 text-sm text-muted-foreground">This service isn&apos;t available for checkout.</p>
                 <Button asChild className="mt-6">
-                    <Link href="/service">Browse services</Link>
+                    <Link href="/services">Browse services</Link>
                 </Button>
             </div>
         );
