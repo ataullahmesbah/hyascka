@@ -3,202 +3,331 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { GradientOrbs } from '@/components/gradient-orbs';
-import { services } from '@/constants/services';
+import {
+  ArrowRight,
+  Figma,
+  Timer,
+  Smartphone,
+  ShieldCheck,
+} from 'lucide-react';
 
-// The four flagship offerings, pulled straight from the real services data
-// so this panel never drifts out of sync with /services.
-const capabilities = services.slice(0, 4);
-
-const proof = [
-  { value: '120+', label: 'AI systems shipped' },
-  { value: '94%', label: 'Avg. task automation rate' },
-  { value: '24/7', label: 'Systems running in production' },
+const features = [
+  {
+    icon: Figma,
+    title: 'Modern Design',
+    description: 'Clean, modern and user friendly designs.',
+  },
+  {
+    icon: Timer,
+    title: 'High Performance',
+    description: 'Optimized for speed, SEO and performance.',
+  },
+  {
+    icon: Smartphone,
+    title: 'Mobile Responsive',
+    description: 'Perfect experience on all devices.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Secure & Scalable',
+    description: 'Built with best practices for security and scale.',
+  },
 ];
 
 export function Hero() {
   return (
-    <section id="top" className="relative overflow-hidden pt-28 sm:pt-32 lg:pt-36">
-      <GradientOrbs className="opacity-70" />
-      <div className="absolute inset-0 bg-grid mask-fade-b opacity-40" aria-hidden />
+    <section className="relative flex flex-col justify-between overflow-hidden bg-[#050914] font-sans selection:bg-purple-500/30">
+      
+      {/* Background Glows */}
+      <div className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 h-[700px] w-[700px] rounded-full bg-[#3B82F6]/10 blur-[130px]" aria-hidden />
+      <div className="pointer-events-none absolute right-[15%] top-1/3 h-[500px] w-[500px] rounded-full bg-[#7C3AED]/15 blur-[120px]" aria-hidden />
 
-      <div className="relative mx-auto grid max-w-[1280px] grid-cols-1 items-start gap-14 px-5 pb-24 tab:px-8 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10 lg:px-12 lg:pb-32">
-        <div className="flex flex-col items-start gap-7 lg:pr-4 lg:pt-4">
+      {/* Main Hero Content */}
+      <div className="relative z-10 mx-auto grid w-full max-w-[1340px] grid-cols-1 items-center gap-12 px-6 pb-20 pt-28 lg:grid-cols-[1fr_1fr] lg:gap-8 lg:px-12 lg:pt-36">
+        
+        {/* Left Column (Text) */}
+        <div className="flex flex-col items-start lg:pr-8">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.21, 0.47, 0.32, 0.98] }}
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="mb-8 flex items-center gap-2.5 rounded-full border border-slate-700/50 bg-[#111826] px-4 py-1.5 backdrop-blur-sm"
           >
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            AI Development &amp; Automation Agency
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+            <span className="text-sm font-medium text-slate-300">We Build Digital Success</span>
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.06, ease: [0.21, 0.47, 0.32, 0.98] }}
-            className="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance sm:text-5xl lg:text-[3.75rem] lg:leading-[1.04]"
+            transition={{ duration: 0.7, delay: 0.1, ease: 'easeOut' }}
+            className="mb-6 text-[2.75rem] font-bold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-[4rem]"
           >
-            We Build the AI Systems{' '}
-            <span className="text-gradient-primary">Your Business Runs On</span>
+            We Build Modern <br />
+            Websites That <br />
+            <span className="bg-gradient-to-r from-[#9333EA] to-[#3B82F6] bg-clip-text text-transparent">
+              Drive Results
+            </span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.14, ease: [0.21, 0.47, 0.32, 0.98] }}
-            className="max-w-xl text-lg leading-relaxed text-muted-foreground text-pretty"
+            transition={{ duration: 0.7, delay: 0.2, ease: 'easeOut' }}
+            className="mb-10 max-w-[28rem] text-base leading-relaxed text-slate-400 sm:text-lg"
           >
-            HYASCKA is a full-stack AI agency. We design, build, and ship AI agents,
-            automation, and enterprise software — production systems that cut manual
-            work, respond to customers instantly, and scale with your business.
+            We design and develop fast, secure and user-friendly websites that help your business grow online.
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.22, ease: [0.21, 0.47, 0.32, 0.98] }}
-            className="flex flex-col gap-3 sm:flex-row sm:items-center"
+            transition={{ duration: 0.7, delay: 0.3, ease: 'easeOut' }}
+            className="flex flex-wrap items-center gap-4"
           >
-            <Button asChild size="lg" className="group h-12 gap-2 rounded-btn px-6 text-base">
-              <Link href="/contact">
-                Book a Strategy Call
-                <ArrowRight className="h-4.5 w-4.5 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="h-12 gap-2 rounded-btn px-6 text-base bg-background/40 backdrop-blur-sm"
+            <Link
+              href="/services"
+              className="group flex items-center gap-2 rounded-md bg-gradient-to-r from-[#5a46ff] to-[#7c58ff] px-7 py-3.5 text-[15px] font-semibold text-white transition-all hover:opacity-90 hover:shadow-[0_0_20px_rgba(90,70,255,0.4)]"
             >
-              <Link href="/portfolio">
-                See Our Work
-                <ArrowUpRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="mt-2 grid w-full grid-cols-3 gap-4 border-t border-border/60 pt-6 sm:max-w-md"
-          >
-            {proof.map((p) => (
-              <div key={p.label}>
-                <div className="font-display text-xl font-semibold tracking-tight sm:text-2xl">
-                  {p.value}
-                </div>
-                <div className="mt-1 text-xs leading-snug text-muted-foreground">
-                  {p.label}
-                </div>
-              </div>
-            ))}
+              Explore Our Services
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href="/portfolio"
+              className="flex items-center justify-center rounded-md border border-slate-700/60 bg-[#0B1120]/50 px-7 py-3.5 text-[15px] font-semibold text-white transition-all hover:bg-slate-800/60"
+            >
+              View Our Projects
+            </Link>
           </motion.div>
         </div>
 
-        <CapabilityPanel />
+        {/* Right Column (Fixed 3D Devices) */}
+        <div className="relative z-10 w-full pt-10 lg:pt-0">
+          <HeroDevices />
+        </div>
       </div>
 
-      <ScrollIndicator />
+      {/* Bottom Features Strip */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, delay: 0.5 }}
+        className="relative z-20 w-full border-t border-slate-800/60 bg-[#080d1a] py-10"
+      >
+        <div className="mx-auto grid w-full max-w-[1340px] grid-cols-1 gap-8 px-6 sm:grid-cols-2 lg:grid-cols-4 lg:px-12">
+          {features.map((feature, idx) => (
+            <div key={idx} className="flex items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-slate-700/60 text-[#9333EA]">
+                <feature.icon className="h-6 w-6" strokeWidth={1.5} />
+              </div>
+              <div>
+                <h4 className="text-[15px] font-semibold tracking-wide text-white">
+                  {feature.title}
+                </h4>
+                <p className="mt-1 text-[13px] leading-relaxed text-slate-400">
+                  {feature.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
     </section>
   );
 }
 
-/**
- * The hero's signature element: instead of an abstract animated demo, this
- * states plainly — in the visitor's first five seconds — exactly what
- * HYASCKA builds and what each thing does for the business hiring us.
- * Sourced directly from the real services list so it can't drift out of
- * sync with /services.
- */
-function CapabilityPanel() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, delay: 0.2, ease: [0.21, 0.47, 0.32, 0.98] }}
-      className="relative mx-auto w-full max-w-md lg:sticky lg:top-28 lg:max-w-none"
-    >
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-2 shadow-soft-lg">
-        <div className="flex items-center justify-between px-3.5 pb-2 pt-2.5">
-          <span className="font-display text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            What We Build
-          </span>
-          <span className="flex items-center gap-1.5 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
-            <span className="h-1 w-1 rounded-full bg-success animate-pulse" />
-            In production today
-          </span>
-        </div>
+/* ────────────────────────────────────────────────────────────────
+   Fixed 3D Device Mockups (Correct Angles & Colors)
+   ──────────────────────────────────────────────────────────────── */
 
-        <div className="flex flex-col gap-1.5 p-1.5">
-          {capabilities.map((cap, i) => (
-            <motion.div
-              key={cap.title}
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.35 + i * 0.09, duration: 0.5 }}
-              className="group relative flex items-start gap-3.5 overflow-hidden rounded-xl border border-border/60 bg-background/40 p-3.5 transition-colors hover:border-border hover:bg-background/70"
-            >
-              <span
-                className={`absolute inset-y-2 left-0 w-[3px] rounded-full bg-gradient-to-b ${cap.accent}`}
-                aria-hidden
-              />
-              <div
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-btn bg-gradient-to-br ${cap.accent} text-primary-foreground`}
-              >
-                <cap.icon className="h-4.5 w-4.5" />
+function HeroDevices() {
+  return (
+    <div className="relative mx-auto w-full max-w-[650px] lg:max-w-none lg:scale-105 [perspective:2000px]">
+      
+      {/* 
+        Corrected Rotation:
+        rotateY(-20deg) = हल्का বামে ঘুরবে (আগের মত অতিরিক্ত না)
+        rotateX(12deg) = উপর থেকে একটু নিচের দিকে দেখার ভিউ
+      */}
+      <motion.div
+        initial={{ opacity: 0, rotateY: -5, rotateX: 5 }}
+        animate={{ opacity: 1, rotateY: -20, rotateX: 12, rotateZ: -2 }}
+        transition={{ duration: 1.2, delay: 0.3, ease: [0.21, 0.47, 0.32, 0.98] }}
+        className="relative w-full [transform-style:preserve-3d]"
+      >
+        
+        {/* 💻 Laptop Structure */}
+        <div className="relative w-[88%] ml-auto [transform-style:preserve-3d]">
+          
+          {/* 1. Laptop Lid / Screen (Dark Metallic Gray Border) */}
+          <div className="relative z-10 w-full rounded-t-[16px] bg-[#1a1c23] p-[1.5%] shadow-[0_-10px_30px_rgba(0,0,0,0.5)] border-t border-x border-[#3b4054]">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-[8px] bg-[#050812]">
+              <LaptopScreen />
+            </div>
+          </div>
+
+          {/* 2. Laptop Base / Keyboard Deck (Laying Flat perfectly) */}
+          <div
+            className="absolute left-0 top-[99%] w-full origin-top rounded-b-[16px] bg-gradient-to-b from-[#252836] to-[#12141c] border-x border-b border-[#3b4054] shadow-[0_30px_60px_rgba(0,0,0,0.8)]"
+            style={{
+              height: '85%',
+              transform: 'rotateX(-90deg)', // Lays the keyboard flat
+              transformStyle: 'preserve-3d',
+            }}
+          >
+            {/* Keyboard Layout */}
+            <div className="absolute left-[5%] top-[8%] flex h-[55%] w-[90%] flex-col gap-[3%] rounded-[6px] bg-[#0c0d12] p-[2%] shadow-[inset_0_2px_15px_rgba(0,0,0,0.9)] border border-[#1a1c23]">
+              {/* Row 1: Function keys */}
+              <div className="flex h-[12%] w-full gap-[1.5%]">
+                {Array.from({ length: 14 }).map((_, i) => (
+                  <div key={i} className="flex-1 rounded-[2px] bg-[#222634] shadow-[0_1px_0_rgba(0,0,0,1)]" />
+                ))}
               </div>
-              <div className="min-w-0 flex-1 pt-0.5">
-                <div className="font-display text-sm font-semibold">{cap.title}</div>
-                <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                  {cap.description}
+              {/* Row 2: Numbers */}
+              <div className="flex h-[16%] w-full gap-[1.5%]">
+                {Array.from({ length: 14 }).map((_, i) => (
+                  <div key={i} className="flex-1 rounded-[3px] bg-[#2a2f42] shadow-[0_2px_0_rgba(0,0,0,1)]" />
+                ))}
+              </div>
+              {/* Row 3: Tab Row */}
+              <div className="flex h-[16%] w-full gap-[1.5%]">
+                <div className="w-[10%] rounded-[3px] bg-[#222634]" />
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="flex-1 rounded-[3px] bg-[#2a2f42] shadow-[0_2px_0_rgba(0,0,0,1)]" />
+                ))}
+                <div className="w-[12%] rounded-[3px] bg-[#222634]" />
+              </div>
+              {/* Row 4: Caps Row */}
+              <div className="flex h-[16%] w-full gap-[1.5%]">
+                <div className="w-[12%] rounded-[3px] bg-[#222634]" />
+                {Array.from({ length: 11 }).map((_, i) => (
+                  <div key={i} className="flex-1 rounded-[3px] bg-[#2a2f42] shadow-[0_2px_0_rgba(0,0,0,1)]" />
+                ))}
+                <div className="w-[15%] rounded-[3px] bg-[#222634]" />
+              </div>
+              {/* Row 5: Shift Row */}
+              <div className="flex h-[16%] w-full gap-[1.5%]">
+                <div className="w-[16%] rounded-[3px] bg-[#222634]" />
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <div key={i} className="flex-1 rounded-[3px] bg-[#2a2f42] shadow-[0_2px_0_rgba(0,0,0,1)]" />
+                ))}
+                <div className="w-[18%] rounded-[3px] bg-[#222634]" />
+              </div>
+              {/* Row 6: Spacebar */}
+              <div className="flex h-[16%] w-full gap-[1.5%]">
+                <div className="w-[6%] rounded-[3px] bg-[#222634]" />
+                <div className="w-[6%] rounded-[3px] bg-[#222634]" />
+                <div className="w-[6%] rounded-[3px] bg-[#222634]" />
+                <div className="w-[36%] rounded-[3px] bg-[#2a2f42] shadow-[0_2px_0_rgba(0,0,0,1)]" />
+                <div className="w-[6%] rounded-[3px] bg-[#222634]" />
+                <div className="w-[6%] rounded-[3px] bg-[#222634]" />
+                {/* Arrows */}
+                <div className="flex flex-1 gap-[5%]">
+                  <div className="mt-auto h-[45%] flex-1 rounded-[2px] bg-[#222634]" />
+                  <div className="flex flex-1 flex-col justify-between">
+                    <div className="h-[45%] w-full rounded-[2px] bg-[#222634]" />
+                    <div className="h-[45%] w-full rounded-[2px] bg-[#222634]" />
+                  </div>
+                  <div className="mt-auto h-[45%] flex-1 rounded-[2px] bg-[#222634]" />
                 </div>
               </div>
-            </motion.div>
-          ))}
+            </div>
+
+            {/* Trackpad */}
+            <div className="absolute bottom-[8%] left-1/2 h-[22%] w-[28%] -translate-x-1/2 rounded-[6px] bg-[#1a1d26] shadow-[inset_0_1px_4px_rgba(0,0,0,0.8)] border border-[#2a2e3d]" />
+            
+            {/* Front Lip / Thickness of Base */}
+            <div className="absolute top-full left-0 w-full h-[4%] bg-[#080a0f] rounded-b-[16px] origin-top [transform:rotateX(-90deg)]" />
+          </div>
         </div>
 
-        <Link
-          href="/services"
-          className="group flex items-center justify-between border-t border-border/60 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:text-primary"
+        {/* 📱 Mobile Phone (Repositioned to fit the new angle naturally) */}
+        <div
+          className="absolute bottom-[-2%] left-[5%] w-[25%] [transform-style:preserve-3d]"
+          style={{
+            transform: 'translateZ(120px) rotateY(5deg)', // Adjusted to float nicely with the new laptop angle
+          }}
         >
-          Explore all services
-          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </Link>
-      </div>
-    </motion.div>
+          <div className="rounded-[12%/5.5%] bg-gradient-to-tr from-[#252836] to-[#0f121a] p-[3.5%] shadow-[0_20px_40px_rgba(0,0,0,0.8)] border border-[#485270]/50">
+            <div className="relative aspect-[9/19] overflow-hidden rounded-[10%/4.8%] bg-[#050812] shadow-inner">
+              <PhoneScreen />
+            </div>
+          </div>
+        </div>
+
+      </motion.div>
+    </div>
   );
 }
 
-function ScrollIndicator() {
+function LaptopScreen() {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: 1.2 }}
-      className="relative mx-auto max-w-[1280px] px-5 tab:px-8 lg:px-12"
-    >
-      <div className="flex justify-center pb-6">
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          className="flex flex-col items-center gap-1.5 text-muted-foreground"
-        >
-          <span className="text-xs font-medium uppercase tracking-wider">Scroll</span>
-          <div className="flex h-9 w-5.5 items-start justify-center rounded-full border border-border p-1">
-            <motion.span
-              animate={{ y: [0, 12, 0], opacity: [1, 0.3, 1] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              className="h-1.5 w-1 rounded-full bg-primary"
-            />
-          </div>
-        </motion.div>
+    <div className="absolute inset-0 bg-[#050914]">
+      <div className="pointer-events-none absolute -right-[10%] -top-[15%] h-[60%] w-[55%] rounded-full bg-[#6366f1] opacity-30 blur-3xl" aria-hidden />
+      
+      <div className="relative flex items-center justify-between border-b border-white/[0.05] px-[4%] py-[2.5%]">
+        <span className="text-[0.45rem] font-bold tracking-[0.16em] text-white lg:text-[0.6rem]">HYASCKA</span>
+        <div className="flex items-center gap-[5%] text-[0.35rem] text-white/50 lg:text-[0.45rem]">
+          <span>Home</span><span>About</span><span>Services</span><span>Contact</span>
+          <span className="rounded-full bg-[#4f46e5] px-[0.5rem] py-[0.18rem] text-white">Get Started</span>
+        </div>
       </div>
-    </motion.div>
+
+      <div className="relative flex gap-[4%] px-[8%] pt-[6%]">
+        <div className="w-[50%] pt-[2%]">
+          <h3 className="text-[0.8rem] font-semibold italic leading-[1.2] text-white lg:text-[1.1rem]">
+            Digital Solutions<br />That Drive Growth
+          </h3>
+          <div className="mt-[8%] flex flex-col gap-[4%]">
+            <span className="h-[2px] w-full rounded-full bg-white/[0.1]" />
+            <span className="h-[2px] w-[85%] rounded-full bg-white/[0.1]" />
+            <span className="h-[2px] w-[60%] rounded-full bg-white/[0.1]" />
+          </div>
+        </div>
+
+        <div className="flex w-[48%] flex-col gap-[5%]">
+          <div className="flex gap-[5%]">
+            <div className="w-[55%] rounded-md border border-white/[0.05] bg-white/[0.02] p-[6%]">
+              <span className="block h-2 w-2 rounded-full bg-[#8b5cf6]" />
+              <div className="mt-[15%] flex items-end gap-[6%]">
+                {[40, 70, 50, 90].map((h, i) => (
+                  <span key={i} className="flex-1 rounded-sm bg-[#4f46e5]" style={{ height: `${h * 0.2}px` }} />
+                ))}
+              </div>
+            </div>
+            <div className="flex w-[40%] flex-col gap-[8%]">
+              {[0, 1].map((i) => (
+                <div key={i} className="flex items-center gap-[8%] rounded border border-white/[0.05] bg-white/[0.02] p-[8%]">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#818cf8]" />
+                  <span className="h-[2px] flex-1 rounded-full bg-white/[0.1]" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PhoneScreen() {
+  return (
+    <div className="absolute inset-0 bg-[#050914]">
+      <div className="pointer-events-none absolute -right-[20%] -top-[8%] h-[40%] w-[80%] rounded-full bg-[#6366f1] opacity-35 blur-2xl" aria-hidden />
+      <span className="absolute left-1/2 top-[2%] h-[3px] w-[25%] -translate-x-1/2 rounded-full bg-white/20" />
+
+      <div className="relative px-[10%] pt-[14%]">
+        <h4 className="mt-[15%] text-[0.55rem] font-semibold italic leading-[1.3] text-white">
+          Digital Solutions That Drive Growth
+        </h4>
+        <div className="mt-[10%] flex flex-col gap-[4px]">
+          <span className="h-[2px] w-full rounded-full bg-white/[0.1]" />
+          <span className="h-[2px] w-[75%] rounded-full bg-white/[0.1]" />
+        </div>
+        <div className="mt-[12%] rounded bg-[#4f46e5] py-[5%] text-center text-[0.4rem] font-medium text-white">
+          Get Started
+        </div>
+      </div>
+    </div>
   );
 }

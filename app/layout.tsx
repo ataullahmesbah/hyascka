@@ -10,10 +10,11 @@ import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Providers } from '@/components/providers';
 import { Navbar, type NavServiceGroup } from '@/components/navbar';
-import { Footer } from '@/components/sections/footer';
+import { Footer, type FooterSocialLink } from '@/components/sections/footer';
 import { LoadingScreen } from '@/components/loading-screen';
 import { BackToTop } from '@/components/back-to-top';
 import { AuthNotice } from '@/components/auth/auth-notice';
+import { AnalyticsScripts } from '@/components/analytics-scripts';
 import { prisma } from '@/lib/prisma';
 
 const sans = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
@@ -105,12 +106,31 @@ async function getNavServiceGroups(): Promise<NavServiceGroup[]> {
   }
 }
 
+// Feeds the footer's social icons (PRD section 19) — same server-fetch-
+// then-pass-as-prop pattern as getNavServiceGroups above.
+async function getFooterSocialLinks(): Promise<FooterSocialLink[]> {
+  try {
+    const links = await prisma.socialLink.findMany({
+      where: { active: true },
+      orderBy: { order: 'asc' },
+      select: { id: true, platform: true, url: true, icon: true, label: true },
+    });
+    return links;
+  } catch (error) {
+    console.error('layout: failed to load footer social links', error);
+    return [];
+  }
+}
+
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const serviceGroups = await getNavServiceGroups();
+  const [serviceGroups, socialLinks] = await Promise.all([
+    getNavServiceGroups(),
+    getFooterSocialLinks(),
+  ]);
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -140,10 +160,11 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Providers>
+            <AnalyticsScripts />
             <LoadingScreen />
             <Navbar serviceGroups={serviceGroups} />
             <main className="min-h-screen">{children}</main>
-            <Footer />
+            <Footer socialLinks={socialLinks} />
             <BackToTop />
             <Suspense fallback={null}>
               <AuthNotice />

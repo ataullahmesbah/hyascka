@@ -19,7 +19,17 @@ const testimonialSchema = z.object({
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user || !MANAGER_ROLES.includes(session.user.role as RoleName)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const testimonials = await prisma.testimonial.findMany({
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        project: { select: { id: true, title: true } },
+        service: { select: { id: true, title: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
     return NextResponse.json(testimonials);

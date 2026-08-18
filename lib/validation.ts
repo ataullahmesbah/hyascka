@@ -88,9 +88,44 @@ export const blogSchema = z.object({
   excerpt: z.string().optional(),
   content: z.string().optional(),
   featuredImage: z.string().optional(),
-  status: z.enum(['DRAFT', 'PUBLISHED', 'SCHEDULED', 'ARCHIVED']).default('DRAFT'),
+  contentImages: z.array(z.string()).default([]),
+  authorDesignation: z.string().max(200).optional(),
+  seoTitle: z.string().max(70).optional(),
+  seoDescription: z.string().max(160).optional(),
+  canonicalUrl: z.string().url('Enter a valid URL').optional().or(z.literal('')),
+  status: z.enum(['DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'SCHEDULED', 'REJECTED', 'ARCHIVED']).default('DRAFT'),
   categoryId: z.string().optional(),
   readingTime: z.number().int().min(1).max(60).default(5),
+});
+
+// ─────────────────────────────────────
+// Client Testimonial Submission Schema
+// ─────────────────────────────────────
+
+export const testimonialSubmitSchema = z.object({
+  quote: z.string().min(10, 'Tell us a bit more').max(1000),
+  position: z.string().min(1, 'Your role/title is required').max(100),
+  company: z.string().max(100).optional(),
+  rating: z.number().int().min(1).max(5).default(5),
+  image: z.string().optional(),
+  projectId: z.string().optional(),
+  serviceId: z.string().optional(),
+  permissionToPublish: z.boolean().default(true),
+});
+
+// ─────────────────────────────────────
+// Blog Comment Schema
+// ─────────────────────────────────────
+
+export const commentSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100),
+  email: z.string().email('Please enter a valid email address'),
+  content: z.string().min(3, 'Comment is too short').max(2000, 'Comment is too long'),
+  // Honeypot: a real visitor never sees or fills this field (hidden via
+  // CSS in the form); a bot filling every field in a scraped form will.
+  // Non-empty here means "silently accept but never persist" rather than
+  // erroring, so the bot gets no signal that it was caught.
+  website: z.string().max(0, 'Spam detected').optional(),
 });
 
 // ─────────────────────────────────────

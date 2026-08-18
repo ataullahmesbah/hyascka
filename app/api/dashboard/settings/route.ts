@@ -21,8 +21,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // metaCapiAccessToken is a real secret (server-to-server Meta
+    // Conversions API token), not a public identifier like the other
+    // tracking fields — it must never reach the browser, even behind this
+    // authenticated admin-only endpoint. We only tell the client whether
+    // one is saved, never the value itself.
     const settings = await prisma.siteSettings.findFirst();
-    return NextResponse.json(settings);
+    if (!settings) return NextResponse.json(null);
+
+    const { metaCapiAccessToken, ...safeSettings } = settings;
+    return NextResponse.json({ ...safeSettings, metaCapiAccessTokenSet: !!metaCapiAccessToken });
   } catch {
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
   }

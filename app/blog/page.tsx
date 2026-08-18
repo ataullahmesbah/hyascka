@@ -10,12 +10,17 @@ import { CTASection } from '@/components/cta-section';
 import { Reveal } from '@/components/reveal';
 import { ArrowRight, ArrowUpRight, Clock, User } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
-import cloudinaryImageLoader from '@/lib/cloudinary-image-loader';
+
+const TITLE = 'Blog — HYASCKA';
+const DESCRIPTION =
+  'AI insights, technology updates, and engineering perspectives from the HYASCKA team on building intelligent software, automation, and enterprise systems.';
 
 export const metadata: Metadata = {
-  title: 'Blog — HYASCKA',
-  description:
-    'AI insights, technology updates, and engineering perspectives from the HYASCKA team on building intelligent software, automation, and enterprise systems.',
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: '/blog' },
+  openGraph: { title: TITLE, description: DESCRIPTION, type: 'website' },
+  twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
 };
 
 export const dynamic = 'force-dynamic';
@@ -126,7 +131,6 @@ export default async function BlogPage() {
                           alt={featuredPost.title}
                           fill
                           sizes="(max-width: 1024px) 100vw, 288px"
-                          loader={cloudinaryImageLoader}
                           className="object-cover"
                         />
                       </div>
@@ -155,7 +159,6 @@ export default async function BlogPage() {
                             alt={p.title}
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                            loader={cloudinaryImageLoader}
                             className="object-cover"
                           />
                         </div>

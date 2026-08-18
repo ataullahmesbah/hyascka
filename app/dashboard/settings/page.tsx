@@ -1,13 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { Settings, Save, Building, Share2, Search, BarChart3 } from 'lucide-react';
+import { Save, Building, Share2, Search, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
@@ -27,6 +28,16 @@ interface SiteSettings {
   seoDescription: string | null;
   seoKeywords: string | null;
   analyticsId: string | null;
+  fbPixelId: string | null;
+  fbPixelEnabled: boolean;
+  metaCapiAccessTokenSet: boolean;
+  metaCapiEnabled: boolean;
+  gtmContainerId: string | null;
+  gtmEnabled: boolean;
+  ga4MeasurementId: string | null;
+  ga4Enabled: boolean;
+  clarityProjectId: string | null;
+  clarityEnabled: boolean;
 }
 
 export default function SettingsPage() {
@@ -34,8 +45,13 @@ export default function SettingsPage() {
 
   const [formData, setFormData] = React.useState({
     siteName: '', siteUrl: '', description: '', email: '', phone: '', address: '',
-    seoTitle: '', seoDescription: '', seoKeywords: '', analyticsId: '',
+    seoTitle: '', seoDescription: '', seoKeywords: '',
     twitter: '', linkedin: '', github: '', instagram: '', youtube: '',
+    fbPixelId: '', fbPixelEnabled: false,
+    metaCapiAccessToken: '', metaCapiEnabled: false, metaCapiAccessTokenSet: false,
+    gtmContainerId: '', gtmEnabled: false,
+    ga4MeasurementId: '', ga4Enabled: false,
+    clarityProjectId: '', clarityEnabled: false,
   });
 
   React.useEffect(() => {
@@ -51,12 +67,22 @@ export default function SettingsPage() {
         seoTitle: settings.seoTitle ?? '',
         seoDescription: settings.seoDescription ?? '',
         seoKeywords: settings.seoKeywords ?? '',
-        analyticsId: settings.analyticsId ?? '',
         twitter: social.twitter ?? '',
         linkedin: social.linkedin ?? '',
         github: social.github ?? '',
         instagram: social.instagram ?? '',
         youtube: social.youtube ?? '',
+        fbPixelId: settings.fbPixelId ?? '',
+        fbPixelEnabled: settings.fbPixelEnabled,
+        metaCapiAccessToken: '',
+        metaCapiEnabled: settings.metaCapiEnabled,
+        metaCapiAccessTokenSet: settings.metaCapiAccessTokenSet,
+        gtmContainerId: settings.gtmContainerId ?? '',
+        gtmEnabled: settings.gtmEnabled,
+        ga4MeasurementId: settings.ga4MeasurementId ?? '',
+        ga4Enabled: settings.ga4Enabled,
+        clarityProjectId: settings.clarityProjectId ?? '',
+        clarityEnabled: settings.clarityEnabled,
       });
     }
   }, [settings]);
@@ -79,7 +105,18 @@ export default function SettingsPage() {
           seoTitle: formData.seoTitle, seoDescription: formData.seoDescription, seoKeywords: formData.seoKeywords,
         });
       } else if (section === 'analytics') {
-        payload.analyticsId = formData.analyticsId;
+        Object.assign(payload, {
+          fbPixelId: formData.fbPixelId, fbPixelEnabled: formData.fbPixelEnabled,
+          metaCapiEnabled: formData.metaCapiEnabled,
+          gtmContainerId: formData.gtmContainerId, gtmEnabled: formData.gtmEnabled,
+          ga4MeasurementId: formData.ga4MeasurementId, ga4Enabled: formData.ga4Enabled,
+          clarityProjectId: formData.clarityProjectId, clarityEnabled: formData.clarityEnabled,
+        });
+        // Only send the token if the admin actually typed a new one — an
+        // empty field must never overwrite an already-saved token.
+        if (formData.metaCapiAccessToken) {
+          payload.metaCapiAccessToken = formData.metaCapiAccessToken;
+        }
       }
 
       const res = await fetch('/api/dashboard/settings', {
@@ -158,9 +195,60 @@ export default function SettingsPage() {
 
         <TabsContent value="analytics" className="mt-4">
           <Card>
-            <CardHeader className="p-5"><CardTitle className="text-base font-semibold">Analytics & Tracking</CardTitle></CardHeader>
-            <CardContent className="p-5 pt-0 space-y-4">
-              <div className="space-y-2"><Label htmlFor="analyticsId">Google Analytics ID</Label><Input id="analyticsId" value={formData.analyticsId} onChange={(e) => setFormData({ ...formData, analyticsId: e.target.value })} placeholder="G-XXXXXXXXXX" /></div>
+            <CardHeader className="p-5">
+              <CardTitle className="text-base font-semibold">Analytics & Tracking</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">Each integration only loads on the live site when its toggle is on.</p>
+            </CardHeader>
+            <CardContent className="p-5 pt-0 space-y-6">
+              <div className="space-y-3 rounded-lg border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="ga4MeasurementId" className="font-medium">Google Analytics 4</Label>
+                  <Switch id="ga4Enabled" checked={formData.ga4Enabled} onCheckedChange={(c) => setFormData({ ...formData, ga4Enabled: c })} />
+                </div>
+                <Input id="ga4MeasurementId" value={formData.ga4MeasurementId} onChange={(e) => setFormData({ ...formData, ga4MeasurementId: e.target.value })} placeholder="G-XXXXXXXXXX" />
+              </div>
+
+              <div className="space-y-3 rounded-lg border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="gtmContainerId" className="font-medium">Google Tag Manager</Label>
+                  <Switch id="gtmEnabled" checked={formData.gtmEnabled} onCheckedChange={(c) => setFormData({ ...formData, gtmEnabled: c })} />
+                </div>
+                <Input id="gtmContainerId" value={formData.gtmContainerId} onChange={(e) => setFormData({ ...formData, gtmContainerId: e.target.value })} placeholder="GTM-XXXXXXX" />
+              </div>
+
+              <div className="space-y-3 rounded-lg border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="fbPixelId" className="font-medium">Facebook Pixel</Label>
+                  <Switch id="fbPixelEnabled" checked={formData.fbPixelEnabled} onCheckedChange={(c) => setFormData({ ...formData, fbPixelEnabled: c })} />
+                </div>
+                <Input id="fbPixelId" value={formData.fbPixelId} onChange={(e) => setFormData({ ...formData, fbPixelId: e.target.value })} placeholder="Pixel ID" />
+              </div>
+
+              <div className="space-y-3 rounded-lg border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="metaCapiToken" className="font-medium">Meta Conversions API</Label>
+                  <Switch id="metaCapiEnabled" checked={formData.metaCapiEnabled} onCheckedChange={(c) => setFormData({ ...formData, metaCapiEnabled: c })} />
+                </div>
+                <Input
+                  id="metaCapiToken"
+                  type="password"
+                  value={formData.metaCapiAccessToken}
+                  onChange={(e) => setFormData({ ...formData, metaCapiAccessToken: e.target.value })}
+                  placeholder={formData.metaCapiAccessTokenSet ? 'Access token saved — enter a new one to replace it' : 'Access token'}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Never displayed once saved, only whether one exists. Server-to-server event dispatch using this token is not wired up yet.
+                </p>
+              </div>
+
+              <div className="space-y-3 rounded-lg border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="clarityProjectId" className="font-medium">Microsoft Clarity</Label>
+                  <Switch id="clarityEnabled" checked={formData.clarityEnabled} onCheckedChange={(c) => setFormData({ ...formData, clarityEnabled: c })} />
+                </div>
+                <Input id="clarityProjectId" value={formData.clarityProjectId} onChange={(e) => setFormData({ ...formData, clarityProjectId: e.target.value })} placeholder="Project ID" />
+              </div>
+
               <Separator />
               <div className="flex justify-end"><Button className="gap-2" onClick={() => handleSave('analytics')}><Save className="h-4 w-4" /> Save Analytics</Button></div>
             </CardContent>

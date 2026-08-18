@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight, ExternalLink } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
-import cloudinaryImageLoader from '@/lib/cloudinary-image-loader';
 import { GradientOrbs } from '@/components/gradient-orbs';
 import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/reveal';
@@ -110,7 +109,6 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
                   alt={project.title}
                   fill
                   sizes="(max-width: 1024px) 100vw, 1280px"
-                  loader={cloudinaryImageLoader}
                   className="object-cover"
                   priority
                 />
@@ -228,7 +226,6 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
                       alt={`${project.title} — screenshot ${i + 1}`}
                       fill
                       sizes="(max-width: 640px) 100vw, 50vw"
-                      loader={cloudinaryImageLoader}
                       className="object-cover"
                     />
                   </div>

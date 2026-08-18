@@ -36,6 +36,8 @@ import {
   UserPlus,
   FileSignature,
   Home,
+  MessageSquare,
+  Share2,
 } from 'lucide-react';
 
 export type DashboardRole = Role;
@@ -96,6 +98,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
       { label: 'Technologies', href: '/dashboard/technologies', icon: Cpu, roles: ['SUPER_ADMIN', 'ADMIN'] },
       { label: 'Testimonials', href: '/dashboard/testimonials', icon: Quote, roles: ['SUPER_ADMIN', 'ADMIN'] },
       { label: 'FAQ', href: '/dashboard/faq', icon: HelpCircle, roles: ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] },
+      { label: 'Comments', href: '/dashboard/comments', icon: MessageSquare, roles: ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] },
     ],
   },
   {
@@ -117,6 +120,7 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
     items: [
       { label: 'Reports', href: '/dashboard/reports', icon: FileBarChart, roles: ['SUPER_ADMIN', 'ADMIN'] },
       { label: 'Settings', href: '/dashboard/settings', icon: Settings, roles: ['SUPER_ADMIN', 'ADMIN'] },
+      { label: 'Social Links', href: '/dashboard/social-links', icon: Share2, roles: ['SUPER_ADMIN', 'ADMIN'] },
       { label: 'Appearance', href: '/dashboard/appearance', icon: Palette, roles: ['SUPER_ADMIN'] },
       { label: 'Notifications', href: '/dashboard/notifications', icon: Bell },
       { label: 'Audit Logs', href: '/dashboard/audit-logs', icon: ScrollText, roles: ['SUPER_ADMIN'] },

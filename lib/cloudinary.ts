@@ -18,6 +18,8 @@ type UploadResult = {
   width: number;
   height: number;
   format: string;
+  bytes: number;
+  originalFilename?: string;
 };
 
 function validateFile(file: File): { format: string; buffer: Buffer } {
@@ -65,6 +67,8 @@ export async function uploadImage(
             width: result.width,
             height: result.height,
             format: result.format,
+            bytes: result.bytes,
+            originalFilename: result.original_filename,
           });
         }
       )

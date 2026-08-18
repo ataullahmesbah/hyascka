@@ -9,6 +9,7 @@ const serviceSchema = z.object({
   slug: z.string().optional(),
   shortDescription: z.string().max(300).optional(),
   description: z.string().optional(),
+  approach: z.string().optional(),
   image: z.string().url().optional().or(z.literal('')),
   icon: z.string().optional(),
   features: z.array(z.string()).default([]),
@@ -22,6 +23,9 @@ const serviceSchema = z.object({
   status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']).default('PUBLISHED'),
   seoTitle: z.string().max(70).optional(),
   seoDescription: z.string().max(160).optional(),
+}).refine((data) => data.acquisitionType !== 'FIXED_PRICE' || data.price !== undefined, {
+  message: 'Fixed-price services require a price',
+  path: ['price'],
 });
 
 export async function GET() {

@@ -1,176 +1,361 @@
-ZIP: hyascka-phases-abcd-combined.zip
-Combined snapshot of Phase A (Security Audit) + Phase B (Dashboard Core)
-+ Phase C (Projects) + Phase D (Services), applied on top of the repo's
-`main` branch at commit 782ce684b3602bc53db0337a5564d796a43e3463
-("major issue solve"). This supersedes the earlier hyascka-phases-abc-
-combined.zip — use this one.
-
-DELETED (delete these 5 files from your local repo; not included in this
-ZIP since they no longer exist):
-- app/api/login/route.ts               (Phase A — dead, unauthenticated)
-- app/api/register/route.ts            (Phase A — dead, unauthenticated)
-- app/api/logout/route.ts              (Phase A — dead, unauthenticated)
-- actions/upload/actions.ts            (Phase A — dead, unauthenticated)
-- constants/faq.ts                     (Phase D — dead after FAQ section
-                                         was wired to the real database)
-
-NEW (copy into your repo at the same path) — 8 files:
-- app/api/dashboard/activity/route.ts
-- app/api/dashboard/reports/route.ts
-- app/portfolio/[slug]/page.tsx
-- lib/activity-log.ts
-- prisma/migrations/20260818190900_add_activity_log/migration.sql
-- prisma/migrations/20260818200000_add_project_publish_fields/migration.sql
-- prisma/migrations/20260818210000_add_service_approach_and_faq_link/migration.sql
-
-MODIFIED (overwrite the existing file at the same path) — 27 files:
-- app/api/blog/route.ts
-- app/api/contact/route.ts
-- app/api/conversations/[id]/messages/route.ts
-- app/api/dashboard/blog/[id]/route.ts
-- app/api/dashboard/faq/[id]/route.ts
-- app/api/dashboard/faq/route.ts
-- app/api/dashboard/offers/route.ts
-- app/api/dashboard/projects/[id]/route.ts
-- app/api/dashboard/projects/route.ts
-- app/api/dashboard/services/[id]/route.ts
-- app/api/dashboard/services/route.ts
-- app/api/dashboard/settings/route.ts
-- app/api/offers/[id]/accept/route.ts
-- app/api/orders/[id]/route.ts
-- app/api/portfolio/route.ts
-- app/api/projects/route.ts
-- app/dashboard/activity/page.tsx
-- app/dashboard/faq/page.tsx
-- app/dashboard/projects/page.tsx
-- app/dashboard/reports/page.tsx
-- app/dashboard/services/page.tsx
-- app/layout.tsx
-- app/portfolio/page.tsx
-- app/services/[slug]/page.tsx
-- app/sitemap.ts
-- components/dashboard/dashboard-sidebar.tsx
-- components/dashboard/notification-bell.tsx
-- components/navbar.tsx
-- components/sections/faq.tsx
-- constants/dashboard-nav.ts
-- hooks/use-dashboard-data.ts
-- lib/validation.ts
-- prisma/schema.prisma
-
-Excluded from this ZIP: node_modules, .next, .git, .env*, database dumps,
-secrets, unrelated project files.
+ZIP: hyascka-full-update.zip
+Complete snapshot of everything done in this session, applied on top of
+`main` at commit 782ce684b3602bc53db0337a5564d796a43e3463 ("major issue
+solve"). This supersedes every earlier zip delivered in this conversation
+— use this one. 10 commits, 83 files touched (75 new/modified, 8 deleted).
 
 ------------------------------------------------------------
-REQUIRED: APPLY ALL THREE MIGRATIONS, IN ORDER
+HOW TO APPLY
 ------------------------------------------------------------
-  npx prisma migrate deploy      (production / CI)
-  -- or, in local dev --
-  npx prisma migrate dev
-  npx prisma generate
-
-1. 20260818190900_add_activity_log — creates the new ActivityLog table
-   only. Adds nothing to any existing table.
-2. 20260818200000_add_project_publish_fields — adds 6 new columns to
-   Project (published, order, projectUrl, clientName, seoTitle,
-   seoDescription). Backfills published=true for every row where
-   status='COMPLETED' — the only data-mutating statement, and it only
-   sets the new column.
-3. 20260818210000_add_service_approach_and_faq_link — adds `approach` to
-   Service, and a nullable `serviceId` to FAQ (every existing FAQ row
-   becomes serviceId=NULL, i.e. stays a global FAQ exactly as before).
-
-All three are additive only — no existing column is altered or dropped,
-no existing row is deleted. Safe to run against a database with real data.
+1. Copy every file under this ZIP into your repo at the same relative path
+   (overwriting existing files where they already exist).
+2. Delete these 8 files from your repo — they are NOT in this ZIP because
+   they were intentionally removed as dead/unauthenticated code:
+     actions/upload/actions.ts
+     app/api/login/route.ts
+     app/api/logout/route.ts
+     app/api/register/route.ts
+     constants/faq.ts
+     constants/projects.ts
+     constants/social.ts
+     constants/testimonials.ts
+3. Run the migrations, IN ORDER (all are additive — no existing column or
+   row is altered destructively; two contain a narrow, explained backfill):
+     npx prisma migrate deploy      (production/CI)
+     npx prisma migrate dev         (local dev)
+     npx prisma generate
+   Migration order:
+     20260818190900_add_activity_log
+     20260818200000_add_project_publish_fields   (backfills Project.published)
+     20260818210000_add_service_approach_and_faq_link
+     20260818220000_blog_workflow_seo_comments
+     20260818230000_add_media_library
+     20260818240000_testimonial_workflow          (status defaults to APPROVED)
+     20260818250000_social_links_and_analytics_settings
+4. `npm install` if any new dependency was introduced — none were; every
+   feature below reuses packages already in package.json.
+5. Restart the dev server / rebuild before testing (schema + Prisma client
+   changes require a fresh `next dev` process).
 
 ------------------------------------------------------------
-PHASE-BY-PHASE SUMMARY
+VERIFICATION PERFORMED IN THIS ENVIRONMENT (this exact combined state)
+------------------------------------------------------------
+- `npx prisma generate` + `DATABASE_URL=<dummy> npx prisma validate` —
+  schema valid.
+- `npx tsc --noEmit` — 0 errors, full repo.
+- `npx eslint . --ext .ts,.tsx` — 0 issues, FULL REPO (not just changed
+  files).
+- `npx vitest run` — 17/17 tests pass (unchanged throughout the session).
+
+NOT performed anywhere in this session (no live database or browser in
+this environment) — you must verify locally:
+- Actually running the 7 migrations against a real Postgres database.
+- Loading any page in a browser.
+- End-to-end submission of any form (contact, comment, testimonial,
+  newsletter, offer, etc.).
+A detailed local test checklist is at the bottom of this file.
+
+------------------------------------------------------------
+WHAT WAS DONE, BY AREA
 ------------------------------------------------------------
 
-PHASE A — Security Audit
-- Removed unauthenticated public POST from /api/projects and /api/blog.
-- Deleted 4 dead, unauthenticated files (zero references anywhere).
+### Security (Phase A)
+- Removed unauthenticated public POST from /api/projects and /api/blog —
+  anyone could create rows directly, bypassing the guarded dashboard
+  routes.
+- Deleted 4 dead files with zero references anywhere (confirmed via
+  grep) that bypassed real auth/session/upload guards: app/api/login,
+  app/api/register, app/api/logout, actions/upload/actions.ts.
 - Added the missing auth+role check to GET /api/dashboard/settings.
-- Fixed a broken Prisma include that made every GET /api/orders/[id] 500.
+- Fixed a broken Prisma include (clientService -> clientServices) that
+  made every GET /api/orders/[id] 500.
 - Root-caused and fixed "Create Project POST not working": slug was
-  required but the dashboard form always sends '', so validation failed
-  before the server's slugify() fallback could run (fixed the identical
-  latent Blog bug too).
+  required by Zod but the dashboard form always sent slug: '', so
+  validation failed before the server's own slugify() fallback could
+  run — fixed the identical latent bug in Blog creation too.
 
-PHASE B — Dashboard Core
-- New ActivityLog model + logActivity() helper, instrumented at 7
-  mutation points (lead created, offer created/accepted, order created,
-  message sent, blog published, project updated, service status changed).
+### Dashboard Core (Phase B)
+- New ActivityLog model + logActivity() helper (distinct from the
+  existing SUPER_ADMIN-only AuditLog), instrumented at 7 mutation
+  points: lead created, offer created/accepted, order created, message
+  sent, blog published, project updated, service status changed.
 - Replaced the 100%-mocked /dashboard/activity and /dashboard/reports
   pages with real Prisma-backed data.
-- Notification bell now polls every 30s + revalidates on focus.
-- Added a "View Website" sidebar link; caught and fixed a near-miss that
-  would have deleted the sidebar's real, working Logout button.
+- Notification bell now polls every 30s + revalidates on focus, so the
+  unread badge doesn't go stale mid-session.
+- Added a "View Website" sidebar link. Caught and reverted a near-miss
+  where an early version of this change would have deleted the
+  sidebar's real, working Logout button (dashboard-shell.tsx depends on
+  a specific sentinel href in constants/dashboard-nav.ts).
 
-PHASE C — Projects
-- Decoupled publish visibility (new `published` boolean) from the
-  existing `status` lifecycle enum — a project could previously never be
-  a private draft once COMPLETED, or shown publicly while IN_PROGRESS.
-- Added order, projectUrl, clientName, seoTitle, seoDescription.
+### Projects (Phase C)
+- Decoupled publish visibility (new Project.published boolean) from the
+  existing `status` lifecycle enum (PLANNED/IN_PROGRESS/COMPLETED/...).
+  Before this, the public site treated status=COMPLETED as "published,"
+  so a real in-progress case study could never be shown, and a finished
+  project couldn't stay a private draft.
+- Added order, projectUrl, clientName, seoTitle, seoDescription fields,
+  all editable in the dashboard.
 - Built app/portfolio/[slug]/page.tsx — a public project detail page
-  that did not exist before at all.
+  that did not exist AT ALL before, despite the PRD explicitly asking
+  for one. SEO metadata, breadcrumb, challenge/solution/outcome
+  sections, gallery, client/project-URL sidebar.
 - Added published projects to the sitemap.
 
-PHASE D — Services
-- Added Service.approach ("Our Approach" section) and FAQ.serviceId
-  (service-specific FAQs, reusing the existing global FAQ model instead
-  of duplicating it).
-- Enforced "FIXED_PRICE requires a price" server-side (was client-only —
-  a direct API call could bypass it before).
-- Wired the homepage FAQ section to real database data — it was 100%
-  hardcoded from constants/faq.ts with zero connection to the FAQ
-  dashboard; that whole dashboard CRUD page had no visible public effect
-  at all until now.
-- Added the two sections PRD explicitly asked for on the service detail
-  page that were missing entirely: service-specific FAQs and Related
-  Services.
-- Built a real, database-driven Services mega-menu in the navbar — it
-  was previously a hardcoded static link with no dropdown whatsoever.
-  Desktop hover/click dropdown (keyboard accessible, closes on outside
+### Services (Phase D)
+- Added Service.approach ("Our Approach" section — no schema field
+  existed for it at all).
+- Service-specific FAQs: reused the existing FAQ model with a nullable
+  serviceId rather than duplicating it as a new model.
+- Enforced "FIXED_PRICE requires a price" server-side via a Zod
+  .refine() — was previously only checked client-side, so a direct API
+  call could create a priceless fixed-price service.
+- Added the two sections that were missing entirely from the public
+  service detail page despite being explicitly PRD-required: service
+  FAQs and Related Services.
+- Built a real, database-driven Services mega-menu in the navbar —
+  it was a hardcoded static link with zero dropdown before. Desktop
+  hover/click dropdown (keyboard accessible, closes on outside
   click/Escape), mobile expandable accordion.
 
-------------------------------------------------------------
-VERIFICATION PERFORMED IN THIS ENVIRONMENT (re-run after every phase)
-------------------------------------------------------------
-- `npx prisma generate` + `DATABASE_URL=<dummy> npx prisma validate`
-  against the real schema.prisma with all models/fields from every phase.
-- `npx tsc --noEmit` — 0 errors, full repo, after every phase.
-- `npx eslint` on every changed file — 0 issues (one unescaped-apostrophe
-  lint error was caught and fixed during Phase D before this delivery).
-- `npx vitest run` — 17/17 existing tests pass, unchanged throughout.
+### Blog / CMS (Phase E — PRD's own "special priority")
+- BlogStatus gains PENDING_REVIEW and REJECTED — the "MODERATOR submits
+  for review, ADMIN approves/publishes" workflow described in the PRD
+  did not exist in code; MODERATOR had identical publish power to
+  ADMIN/SUPER_ADMIN (could create/edit/delete PUBLISHED posts directly,
+  including other authors' posts).
+- Blog gains contentImages[] (multi-image support), authorDesignation,
+  seoTitle, seoDescription, canonicalUrl.
+- New Comment model (name, email, content, status PENDING/APPROVED/
+  REJECTED) — no comment system of any kind existed before, anywhere.
+- Server-side enforcement: MODERATOR/EDITOR can now only save DRAFT/
+  PENDING_REVIEW; DELETE is SUPER_ADMIN-only (previously any staff role
+  in ALLOWED_ROLES, including EDITOR on their own posts, could
+  permanently delete).
+- New public comment routes (submit always PENDING, honeypot spam
+  check) and dashboard moderation routes/page.
+- Dashboard blog editor: working tag picker (tagIds was accepted
+  server-side but had no UI), author designation, SEO fields, a
+  content-images uploader, role-gated status dropdown.
+- Public post page: JSON-LD BlogPosting -> Article, robots noindex
+  handling, author image + designation, image gallery, Related
+  Articles section, comment list + submission form.
 
-NOT performed (no live database or browser in this environment) — please
-verify locally before merging, in this order:
-1. Run all three migrations against a real Postgres database.
+### Media Library
+- New Media model (url, publicId, folder, fileType, width/height/size,
+  title/altText/caption, uploadedById) — there was no Media model at
+  all before.
+- Every upload through the existing /api/upload endpoint (already used
+  by Blog, Projects, Services, and profile avatars) now creates a Media
+  row automatically — the library populates itself with zero per-editor
+  changes needed.
+- Rebuilt /dashboard/media from scratch: the previous version rendered
+  `Array.from({length:12})` fake gradient tiles with no data source at
+  all, and Upload/Preview/Copy/Delete had no onClick handlers. Now real
+  thumbnails, working upload, copy-URL, an edit dialog for alt text/
+  title/caption, delete, and folder/search filtering from real data.
+
+### Testimonials
+- Added a real client submission workflow — PRD explicitly describes
+  one ("client can submit... Status: PENDING... do not automatically
+  publish") but no public submission endpoint existed anywhere; only
+  the admin-created path did. New status enum (PENDING/APPROVED/
+  REJECTED), optional links to the submitter/project/service, an image
+  field, and a permission-to-publish flag.
+- Found GET /api/dashboard/testimonials had NO auth check at all while
+  extending it — fixed alongside.
+- Dashboard page: pending-review queue with approve/reject actions,
+  submitter/project/service shown on client-submitted rows.
+- Fixed the homepage testimonials section, which was 100% hardcoded
+  from constants/testimonials.ts — completely disconnected from the
+  real Testimonial model and the dashboard's own management page (same
+  bug class as the FAQ fix below). Now queries real approved
+  testimonials.
+
+### Newsletter / Footer
+- The footer's newsletter subscribe form never called the API at all —
+  `handleSubscribe` just flipped local UI state to "subscribed" on any
+  non-empty input. Nobody who used the footer form was ever actually
+  added to the Newsletter table. Fixed to POST to the existing (already
+  correct) /api/newsletter route.
+- The footer's social icons were hardcoded with href="#" — clicking any
+  of them did nothing. Replaced with real Social Links (see below).
+
+### Social Links + Analytics Tracking Settings
+- New SocialLink model (platform, url, icon, label, active, order) +
+  full dashboard CRUD + nav entry. Footer now renders real, active
+  links fetched server-side in the root layout.
+- SiteSettings gains real per-provider analytics fields — Facebook
+  Pixel, Meta Conversions API, Google Tag Manager, GA4, Microsoft
+  Clarity — each with its own ID field and enabled toggle (there was
+  previously one vague `analyticsId` field with no per-provider
+  enable/disable at all). GET /api/dashboard/settings now explicitly
+  excludes the Meta CAPI access token from its response (a real secret,
+  unlike the public IDs) and returns only whether one is saved.
+- New components/analytics-scripts.tsx: server component that injects
+  GTM/GA4/FB Pixel/Clarity scripts only when each is enabled AND has an
+  ID saved — disabled means the script is never rendered, not just
+  hidden. Meta CAPI has no client script (it's server-to-server); the
+  setting/token is stored and protected, but actual event dispatch is
+  explicitly flagged as not wired up — building unverified dispatch
+  code against no real ad account would be worse than not shipping it.
+- Removed a decorative "Save Preferences" button with no onClick
+  handler from the dashboard Appearance page — theme changes already
+  apply and persist instantly via next-themes.
+
+### Legal Pages
+- Added Cookie Policy and Refund/Cancellation Policy — PRD explicitly
+  lists both as required; only Privacy Policy and Terms existed before
+  (both already had real, non-lorem-ipsum content, so left as-is).
+  Refund policy is written around HYASCKA's actual custom-quote/
+  milestone-billing model rather than invented fixed-subscription
+  terms. Neither page invents company-specific facts (registration,
+  address, jurisdiction) — same disclaimer/last-updated pattern as the
+  existing legal pages. Linked from the footer and sitemap.
+
+### Two More Hardcoded-Section Bugs (found during a final sweep)
+- components/sections/work.tsx ("Featured Projects" on the homepage)
+  and components/sections/services.tsx ("What we build") were both
+  rendering hardcoded constants/*.ts lists, disconnected from the real
+  Project and Service models this session already built out extensively
+  elsewhere (mega-menu, detail pages, publish workflow). Both now query
+  real data and link to the real detail pages. constants/projects.ts
+  deleted (only consumer). constants/services.ts is kept —
+  components/sections/hero.tsx still uses it for a small decorative
+  capability-preview widget, intentionally left alone as lower-value/
+  higher-risk to touch than the two full CMS sections that were fixed.
+
+------------------------------------------------------------
+DELIBERATELY NOT DONE — AND WHY
+------------------------------------------------------------
+
+1. **AI & Automation real execution backend.** The dashboard's AI
+   Agents/Automation pages are still 100% mock UI with no backend. This
+   needs a decision only you can make: which AI provider, what the
+   agents actually do, and a real execution/queue mechanism to test
+   against. Building fake "queued/running" state with no real provider
+   behind it would be exactly the kind of shallow, untestable work this
+   session was asked not to do. Flagged, not silently skipped.
+
+2. **Full visual "premium redesign" of Solutions/Resources/About.**
+   These pages already have substantial real content (100+ lines each,
+   not stubs) — a full subjective visual redesign is a large, separate
+   design effort, not a bug fix, and wasn't attempted.
+
+3. **Deep performance profiling / Lighthouse-style audit.** This
+   environment has no browser or running dev server to measure against;
+   only static code-level SEO/metadata fixes (already done throughout)
+   were possible.
+
+4. **hero.tsx's static capability-preview data.** Noted above — left
+   as-is, lower severity than the sections that were fully fixed.
+
+------------------------------------------------------------
+LOCAL TEST CHECKLIST
+------------------------------------------------------------
+1. Run all 7 migrations against a real Postgres database; confirm no
+   errors.
 2. Submit the dashboard Create Project / Create Blog forms end-to-end.
 3. Load /dashboard/activity and /dashboard/reports as SUPER_ADMIN/ADMIN.
-4. Publish a project and confirm it appears on /portfolio and its
+4. Publish a project (Published toggle) and confirm it appears on
+   /portfolio, the homepage "Featured Projects" section, and its
    /portfolio/[slug] page; confirm a COMPLETED-but-unpublished one does
-   NOT appear, and an IN_PROGRESS-but-published one DOES.
-5. In the Services dashboard, try saving a FIXED_PRICE service with no
-   price via direct API call (e.g. curl/Postman as an authenticated
-   admin) and confirm it's now rejected with 400.
-6. Add a service-scoped FAQ in the dashboard FAQ page and confirm it
-   shows up on that service's /services/[slug] page but NOT on the
-   homepage's global FAQ section, and vice versa for a Global-scoped FAQ.
-7. Load the homepage and hover/click "Services" in the navbar — confirm
-   the dropdown shows real service groups/services from the database,
-   and that it collapses into an accordion on mobile width.
-8. Click "View Website" and "Logout" in the dashboard sidebar; confirm
-   the notification bell's unread badge updates within ~30s automatically.
+   NOT appear anywhere public.
+5. As MODERATOR, create a blog post and confirm you can only save it as
+   Draft/Pending Review, never Published — then as ADMIN, approve/
+   publish it, and confirm only SUPER_ADMIN can delete it.
+6. Submit a comment on a published post; confirm it does NOT appear
+   publicly until approved in /dashboard/comments.
+7. As a CLIENT/USER, submit a testimonial; confirm it does not appear
+   publicly until approved in /dashboard/testimonials.
+8. Upload an image anywhere in the dashboard (Blog cover, Project
+   image, etc.) and confirm it shows up in /dashboard/media
+   automatically.
+9. Add a Social Link in /dashboard/social-links and confirm it appears
+   in the site footer; add a service-scoped FAQ and confirm it shows on
+   that service's page but not the homepage FAQ section.
+10. Enable GA4 (or another provider) with a real ID in Settings ->
+    Analytics and confirm the script tag appears in the page source
+    when enabled, and disappears when disabled.
+11. Use the footer newsletter form and confirm the email actually lands
+    in /dashboard/newsletter.
+12. Load the homepage and hover/click "Services" in the navbar; confirm
+    real service groups render, and it collapses to an accordion on
+    mobile width.
+13. Visit /cookie-policy and /refund-policy and confirm they render and
+    are linked from the footer.
 
 ------------------------------------------------------------
 PUSH STATUS
 ------------------------------------------------------------
-This session's GitHub access to ataullahmesbah/hyascka remains read-only —
-`git push` and the GitHub API both return 403 (permission denied, not a
-network error), unchanged since Phase A. Everything above is committed
-locally on branch claude/tmi-repo-zip-update-iwyzlf across 4 commits; this
-ZIP is the delivery mechanism until write access is granted (claude.ai
-Settings -> Connectors, or an org admin enabling write access for this
-repo).
+This session's GitHub access to ataullahmesbah/hyascka has been
+read-only for the entire session — every `git push` and GitHub API
+write attempt returned 403 (permission denied, not a network error).
+Everything above is committed locally on branch
+claude/tmi-repo-zip-update-iwyzlf across 10 commits; this ZIP is the
+delivery mechanism until write access is granted (claude.ai Settings ->
+Connectors, or an org admin enabling write access for this repo).
+
+
+ZIP: hyascka-fix-image-loader-crash.zip
+Small patch fixing the exact crash you reported:
+
+  Error: Functions cannot be passed directly to Client Components unless
+  you explicitly expose it by marking it with "use server".
+    <... src=... alt=... fill={true} sizes=... loader={function} ...>
+
+WHAT TO DO:
+1. Overwrite these 6 files in your repo at the same path (all MODIFIED,
+   none are new files, none need a migration):
+     next.config.js
+     components/sections/work.tsx
+     app/portfolio/page.tsx
+     app/portfolio/[slug]/page.tsx
+     app/blog/page.tsx
+     app/blog/[slug]/page.tsx
+2. Restart your dev server (next.config.js changes require a restart,
+   not just Fast Refresh).
+3. No `npm install`, no `prisma migrate`, no new dependency — this is a
+   pure code fix, safe to drop in on top of the full update you already
+   applied.
+
+ROOT CAUSE
+next/image's custom `loader` prop was being passed as a plain function
+reference from several async Server Components (page.tsx files with no
+'use client'). In the Next.js App Router, any prop crossing the Server ->
+Client boundary must be serializable — a plain function isn't (unless
+it's a Server Action) — so Next throws exactly this error and the page
+hard-crashes.
+
+This was NOT something introduced only by the new features — the same
+loader={cloudinaryImageLoader} pattern already existed in app/blog/page.tsx
+and app/portfolio/page.tsx before this session's changes. It just hadn't
+been hit yet. The two new files that also used the same (pre-existing)
+pattern are components/sections/work.tsx and app/portfolio/[slug]/page.tsx
+(app/blog/[slug]/page.tsx already existed and got one extra Image element
+added, also fixed here).
+
+THE FIX
+Configure the Cloudinary loader once, globally, in next.config.js
+(images.loader: 'custom', images.loaderFile) instead of passing it as a
+prop on every individual <Image>. Next then applies it automatically to
+every image on the site, so the loader function never needs to cross the
+Server/Client boundary as a prop. Removed the now-redundant
+`loader={cloudinaryImageLoader}` prop + its import from the 5 affected
+page files.
+
+Three OTHER files in your project still pass `loader={cloudinaryImageLoader}`
+explicitly — components/dashboard/image-upload.tsx, app/dashboard/media/
+page.tsx, app/dashboard/blog/page.tsx. These were left untouched
+deliberately: all three are Client Components ('use client'), and passing
+a function prop between two components that are both already
+client-rendered never crosses the Server/Client boundary — so they were
+never actually broken, and touching them isn't necessary.
+
+VERIFICATION PERFORMED HERE
+- npx tsc --noEmit — 0 errors, full repo.
+- npx eslint on all 6 touched files — 0 issues.
+- npx vitest run — 17/17 tests pass.
+NOT performed (no browser in this environment): actually loading the
+pages. Please confirm the homepage and a blog/portfolio detail page load
+without the error after applying this.

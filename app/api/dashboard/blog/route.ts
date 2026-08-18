@@ -4,9 +4,16 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { blogSchema } from '@/lib/validation';
 import { slugify } from '@/lib/dashboard-auth';
+import { can, type Role } from '@/lib/permissions';
 import type { RoleName } from '@prisma/client';
 
 const ALLOWED_ROLES: RoleName[] = ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'EDITOR'];
+// Statuses that require publish rights (lib/permissions.ts: content.publish
+// = SUPER_ADMIN/ADMIN only). MODERATOR/EDITOR can only ever save a post as
+// DRAFT or PENDING_REVIEW — the PRD's "submit for review" workflow — never
+// PUBLISHED/SCHEDULED directly, and REJECTED/ARCHIVED are review/unpublish
+// decisions that belong to whoever can publish.
+const PUBLISH_GATED_STATUSES = ['PUBLISHED', 'SCHEDULED', 'REJECTED', 'ARCHIVED'];
 
 export async function GET(req: Request) {
   try {
@@ -15,7 +22,7 @@ export async function GET(req: Request) {
     const session = await getServerSession(authOptions);
 
     const where = {
-      ...(status && { status: status as 'DRAFT' | 'PUBLISHED' | 'SCHEDULED' | 'ARCHIVED' }),
+      ...(status && { status: status as 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'SCHEDULED' | 'REJECTED' | 'ARCHIVED' }),
       ...(session?.user?.role === 'EDITOR' && { authorId: session.user.id }),
     };
 
@@ -59,6 +66,13 @@ export async function POST(req: Request) {
       );
     }
 
+    if (PUBLISH_GATED_STATUSES.includes(parsed.data.status) && !can(session.user.role as Role, 'content.publish')) {
+      return NextResponse.json(
+        { error: 'You can only save this post as Draft or Pending Review — publishing requires an editor/admin.' },
+        { status: 403 }
+      );
+    }
+
     const slug = parsed.data.slug || slugify(parsed.data.title);
 
     const existing = await prisma.blog.findUnique({ where: { slug } });
@@ -77,6 +91,11 @@ export async function POST(req: Request) {
         excerpt: parsed.data.excerpt,
         content: parsed.data.content,
         featuredImage: parsed.data.featuredImage,
+        contentImages: parsed.data.contentImages,
+        authorDesignation: parsed.data.authorDesignation,
+        seoTitle: parsed.data.seoTitle,
+        seoDescription: parsed.data.seoDescription,
+        canonicalUrl: parsed.data.canonicalUrl || null,
         status: parsed.data.status,
         readingTime: parsed.data.readingTime,
         authorId: session.user.id,

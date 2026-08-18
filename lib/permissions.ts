@@ -90,6 +90,9 @@ export const PERMISSIONS = {
   'content.update': ['SUPER_ADMIN', 'ADMIN', 'EDITOR'] as Role[],
   'content.publish': ['SUPER_ADMIN', 'ADMIN'] as Role[], // EDITOR can create/update but not publish by default (see below)
   'content.delete': ['SUPER_ADMIN', 'ADMIN'] as Role[],
+  'comments.moderate': ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'] as Role[],
+  'media.manage': ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'EDITOR'] as Role[],
+  'settings.manage': ['SUPER_ADMIN', 'ADMIN'] as Role[],
 
   // --- Messages / Notifications (foundation capability only; module build-out is a later phase) ---
   'messages.read': ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'CLIENT', 'USER'] as Role[],

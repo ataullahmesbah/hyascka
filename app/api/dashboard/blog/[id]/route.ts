@@ -5,9 +5,11 @@ import { prisma } from '@/lib/prisma';
 import { blogSchema } from '@/lib/validation';
 import { slugify } from '@/lib/dashboard-auth';
 import { logActivity } from '@/lib/activity-log';
+import { can, type Role } from '@/lib/permissions';
 import type { RoleName } from '@prisma/client';
 
 const ALLOWED_ROLES: RoleName[] = ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'EDITOR'];
+const PUBLISH_GATED_STATUSES = ['PUBLISHED', 'SCHEDULED', 'REJECTED', 'ARCHIVED'];
 
 export async function GET(
   _req: Request,
@@ -66,6 +68,13 @@ export async function PUT(
       return NextResponse.json({ error: 'You can only edit your own posts' }, { status: 403 });
     }
 
+    if (PUBLISH_GATED_STATUSES.includes(parsed.data.status) && !can(session.user.role as Role, 'content.publish')) {
+      return NextResponse.json(
+        { error: 'You can only save this post as Draft or Pending Review — publishing requires an editor/admin.' },
+        { status: 403 }
+      );
+    }
+
     const slug = parsed.data.slug || slugify(parsed.data.title);
 
     const slugConflict = await prisma.blog.findFirst({
@@ -87,6 +96,11 @@ export async function PUT(
         excerpt: parsed.data.excerpt,
         content: parsed.data.content,
         featuredImage: parsed.data.featuredImage,
+        contentImages: parsed.data.contentImages,
+        authorDesignation: parsed.data.authorDesignation,
+        seoTitle: parsed.data.seoTitle,
+        seoDescription: parsed.data.seoDescription,
+        canonicalUrl: parsed.data.canonicalUrl || null,
         status: parsed.data.status,
         readingTime: parsed.data.readingTime,
         categoryId: parsed.data.categoryId,
@@ -129,17 +143,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!ALLOWED_ROLES.includes(session.user.role as RoleName)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // PRD: only SUPER_ADMIN can permanently delete a blog post. ADMIN and
+    // below can unpublish (PATCH/PUT status -> ARCHIVED) but not delete.
+    if (session.user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Only a Super Admin can permanently delete a blog post' }, { status: 403 });
     }
 
     const existing = await prisma.blog.findUnique({ where: { id: params.id } });
     if (!existing) {
       return NextResponse.json({ error: 'Blog post not found' }, { status: 404 });
-    }
-
-    if (session.user.role === 'EDITOR' && existing.authorId !== session.user.id) {
-      return NextResponse.json({ error: 'You can only delete your own posts' }, { status: 403 });
     }
 
     await prisma.blog.delete({ where: { id: params.id } });

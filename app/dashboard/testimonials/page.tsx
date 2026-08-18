@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { Quote, Plus, MoreHorizontal, Edit, Trash2, Star } from 'lucide-react';
+import { Quote, Plus, MoreHorizontal, Edit, Trash2, Star, Check, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +43,10 @@ interface Testimonial {
   initials: string;
   rating: number;
   active: boolean;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  user: { id: string; name: string | null; email: string } | null;
+  project: { id: string; title: string } | null;
+  service: { id: string; title: string } | null;
 }
 
 export default function TestimonialsPage() {
@@ -89,6 +93,21 @@ export default function TestimonialsPage() {
     }
   };
 
+  const handleModerate = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+    try {
+      const res = await fetch(`/api/dashboard/testimonials/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(status === 'APPROVED' ? 'Testimonial approved and published' : 'Testimonial rejected');
+      refetch();
+    } catch {
+      toast.error('Failed to update testimonial');
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
@@ -117,8 +136,9 @@ export default function TestimonialsPage() {
       <PageHeader title="Testimonials" description="Manage client testimonials shown on your website."
         action={<Button size="sm" className="gap-2" onClick={() => openEditor(null)}><Plus className="h-4 w-4" /> Add Testimonial</Button>} />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <StatCard title="Total" value={(testimonials ?? []).length} icon={Quote} accent="primary" />
+        <StatCard title="Pending Review" value={(testimonials ?? []).filter((t) => t.status === 'PENDING').length} icon={Quote} accent="accent" />
         <StatCard title="Active" value={(testimonials ?? []).filter((t) => t.active).length} icon={Quote} accent="success" />
         <StatCard title="Avg Rating" value={((testimonials ?? []).reduce((a, t) => a + t.rating, 0) / Math.max(testimonials?.length ?? 1, 1)).toFixed(1)} icon={Star} accent="warning" />
       </div>
@@ -134,19 +154,38 @@ export default function TestimonialsPage() {
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between">
                     <Quote className="h-8 w-8 text-primary/30" />
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => openEditor(t)}><Edit className="h-3.5 w-3.5" /> Edit</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="cursor-pointer gap-2 text-destructive focus:text-destructive" onClick={() => setDeleteId(t.id)}><Trash2 className="h-3.5 w-3.5" /> Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center gap-1.5">
+                      {t.status === 'PENDING' && (
+                        <>
+                          <Button size="icon" variant="outline" className="h-8 w-8 text-success hover:text-success" onClick={() => handleModerate(t.id, 'APPROVED')}>
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="outline" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleModerate(t.id, 'REJECTED')}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => openEditor(t)}><Edit className="h-3.5 w-3.5" /> Edit</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="cursor-pointer gap-2 text-destructive focus:text-destructive" onClick={() => setDeleteId(t.id)}><Trash2 className="h-3.5 w-3.5" /> Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
+                  {t.user && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Submitted by {t.user.name ?? t.user.email}
+                      {t.project && ` · ${t.project.title}`}
+                      {t.service && ` · ${t.service.title}`}
+                    </p>
+                  )}
                   <p className="mt-3 text-sm leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
                   <div className="mt-4 flex items-center gap-3">
                     <Avatar className="h-10 w-10"><AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{t.initials}</AvatarFallback></Avatar>
@@ -160,10 +199,22 @@ export default function TestimonialsPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="mt-3">
-                    <Badge variant="secondary" className={cn(t.active ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground')}>
-                      {t.active ? 'Active' : 'Inactive'}
+                  <div className="mt-3 flex gap-2">
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        t.status === 'PENDING' && 'bg-accent/10 text-accent',
+                        t.status === 'APPROVED' && 'bg-success/10 text-success',
+                        t.status === 'REJECTED' && 'bg-destructive/10 text-destructive'
+                      )}
+                    >
+                      {t.status === 'PENDING' ? 'Pending Review' : t.status.charAt(0) + t.status.slice(1).toLowerCase()}
                     </Badge>
+                    {t.status === 'APPROVED' && (
+                      <Badge variant="secondary" className={cn(t.active ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground')}>
+                        {t.active ? 'Live' : 'Hidden'}
+                      </Badge>
+                    )}
                   </div>
                 </CardContent>
               </Card>

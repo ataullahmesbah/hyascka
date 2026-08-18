@@ -3,9 +3,10 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowUpRight, Github, Linkedin, Facebook, Mail, CheckCircle2 } from 'lucide-react';
+import { ArrowUpRight, Github, Linkedin, Facebook, Instagram, Youtube, Twitter, Globe, Mail, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 const columns = [
   {
@@ -33,27 +34,64 @@ const columns = [
     links: [
       { label: 'Privacy Policy', href: '/privacy-policy' },
       { label: 'Terms', href: '/terms' },
+      { label: 'Cookie Policy', href: '/cookie-policy' },
+      { label: 'Refund Policy', href: '/refund-policy' },
     ],
   },
 ];
 
-const socials = [
-  { icon: Linkedin, label: 'LinkedIn', href: '#' },
-  { icon: Facebook, label: 'Facebook', href: '#' },
-  { icon: Github, label: 'GitHub', href: '#' },
-  { icon: Mail, label: 'Email', href: 'mailto:hello@hyaska.com' },
-];
+const ICONS: Record<string, typeof Globe> = {
+  linkedin: Linkedin,
+  facebook: Facebook,
+  github: Github,
+  instagram: Instagram,
+  youtube: Youtube,
+  twitter: Twitter,
+  x: Twitter,
+  email: Mail,
+  mail: Mail,
+};
 
-export function Footer() {
+export interface FooterSocialLink {
+  id: string;
+  platform: string;
+  url: string;
+  icon: string | null;
+  label: string | null;
+}
+
+interface FooterProps {
+  /** Active social links, fetched server-side in app/layout.tsx. Empty
+   * array is a safe fallback — the row just doesn't render. */
+  socialLinks?: FooterSocialLink[];
+}
+
+export function Footer({ socialLinks = [] }: FooterProps) {
   const pathname = usePathname();
   const [email, setEmail] = React.useState('');
   const [subscribed, setSubscribed] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
 
   if (pathname?.startsWith('/dashboard')) return null;
 
-  function handleSubscribe(e: React.FormEvent) {
+  async function handleSubscribe(e: React.FormEvent) {
     e.preventDefault();
-    if (email) setSubscribed(true);
+    if (!email) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? 'Failed to subscribe');
+      setSubscribed(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to subscribe');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -97,25 +135,33 @@ export function Footer() {
                     className="h-10 flex-1"
                     aria-label="Email for newsletter"
                   />
-                  <Button type="submit" size="sm" className="shrink-0 rounded-btn">
+                  <Button type="submit" size="sm" className="shrink-0 rounded-btn gap-1.5" disabled={submitting}>
+                    {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                     Subscribe
                   </Button>
                 </form>
               )}
             </div>
 
-            <div className="flex items-center gap-3">
-              {socials.map((s) => (
-                <a
-                  key={s.label}
-                  href={s.href}
-                  aria-label={s.label}
-                  className="flex h-9 w-9 items-center justify-center rounded-btn border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
-                >
-                  <s.icon className="h-4.5 w-4.5" />
-                </a>
-              ))}
-            </div>
+            {socialLinks.length > 0 && (
+              <div className="flex items-center gap-3">
+                {socialLinks.map((s) => {
+                  const Icon = ICONS[(s.icon ?? s.platform).toLowerCase()] ?? Globe;
+                  return (
+                    <a
+                      key={s.id}
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={s.label ?? s.platform}
+                      className="flex h-9 w-9 items-center justify-center rounded-btn border border-border text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+                    >
+                      <Icon className="h-4.5 w-4.5" />
+                    </a>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {columns.map((col) => (

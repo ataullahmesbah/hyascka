@@ -1,9 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Palette, Save, Moon, Sun, Monitor, Check } from 'lucide-react';
+import { Moon, Sun, Monitor, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useTheme } from 'next-themes';
@@ -81,10 +80,6 @@ export default function AppearancePage() {
           </div>
         </CardContent>
       </Card>
-
-      <div className="flex justify-end">
-        <Button className="gap-2"><Save className="h-4 w-4" /> Save Preferences</Button>
-      </div>
     </div>
   );
 }

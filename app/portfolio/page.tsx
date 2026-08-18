@@ -11,7 +11,6 @@ import { Reveal } from '@/components/reveal';
 import { SectionHeader } from '@/components/section-header';
 import { TrendingUp, ArrowUpRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
-import cloudinaryImageLoader from '@/lib/cloudinary-image-loader';
 
 export const metadata: Metadata = {
   title: 'Portfolio — HYASCKA',
@@ -29,7 +28,7 @@ export default async function PortfolioPage() {
   });
 
   const testimonials = await prisma.testimonial.findMany({
-    where: { active: true },
+    where: { active: true, status: 'APPROVED' },
     take: 6,
     orderBy: { createdAt: 'desc' },
   });
@@ -74,7 +73,6 @@ export default async function PortfolioPage() {
                           alt={p.title}
                           fill
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          loader={cloudinaryImageLoader}
                           className="object-cover"
                         />
                       ) : (

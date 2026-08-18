@@ -38,9 +38,17 @@ enum ProjectStatus {
 
 enum BlogStatus {
   DRAFT
+  PENDING_REVIEW
   PUBLISHED
   SCHEDULED
+  REJECTED
   ARCHIVED
+}
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum ContactStatus {
@@ -109,6 +117,8 @@ model User {
   sentInvitations        ClientInvitation[]        @relation("InvitationInvitedBy")
   auditLogs              AuditLog[]
   activityLogs            ActivityLog[]
+  uploadedMedia           Media[]
+  testimonials            Testimonial[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -222,13 +232,23 @@ model Blog {
   excerpt     String?
   content     String?
   featuredImage String?
+  // Additional in-article images, beyond the single featuredImage cover.
+  contentImages String[]  @default([])
   status      BlogStatus  @default(DRAFT)
   readingTime Int         @default(5)
   authorId    String?
   author      User?       @relation(fields: [authorId], references: [id])
+  // Per-post snapshot of the author's title (e.g. "Senior SEO Strategist")
+  // — kept on Blog rather than User because a person's byline title can
+  // reasonably differ across posts/time, and User has no such field.
+  authorDesignation String?
   categoryId  String?
   category    Category?   @relation(fields: [categoryId], references: [id])
   tags        Tag[]
+  comments    Comment[]
+  seoTitle       String?
+  seoDescription String?
+  canonicalUrl   String?
   publishedAt DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -236,6 +256,70 @@ model Blog {
   @@index([status])
   @@index([categoryId])
   @@index([authorId])
+}
+
+// Real Media Library backing store. Every upload through /api/upload
+// (blog covers, project images, service images, avatars, ...) creates one
+// row here — this is what makes the dashboard Media Library page real
+// instead of a list nothing ever populates.
+model Media {
+  id           String   @id @default(cuid())
+  url          String
+  publicId     String   @unique
+  folder       String   @default("hyaska")
+  fileType     String
+  width        Int?
+  height       Int?
+  size         Int?
+  title        String?
+  altText      String?
+  caption      String?
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([folder])
+  @@index([uploadedById])
+}
+
+// Real Social Links backing store (PRD section 19). Replaces the footer's
+// previously hardcoded, non-functional href="#" icons and the unused
+// constants/social.ts file — neither was ever connected to the dashboard's
+// SiteSettings.socialLinks JSON blob (which itself only the Settings page
+// reads/writes and nothing public ever consumed).
+model SocialLink {
+  id       String  @id @default(cuid())
+  platform String
+  url      String
+  icon     String?
+  label    String?
+  active   Boolean @default(true)
+  order    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
+}
+
+model Comment {
+  id        String        @id @default(cuid())
+  blogId    String
+  blog      Blog          @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  content   String
+  // New comments default to PENDING and are never publicly visible until
+  // a moderator approves them — this IS the spam mitigation the PRD asks
+  // for ("do not automatically publish suspicious comments"), rather than
+  // a content-inspection heuristic.
+  status    CommentStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([blogId])
+  @@index([status])
 }
 
 // ─────────────────────────────────────
@@ -313,6 +397,7 @@ model Service {
   clientServices   ClientService[]
   invoices         Invoice[]
   offerItems       OfferItem[]
+  testimonials     Testimonial[]
   faqs             FAQ[]
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
@@ -484,6 +569,7 @@ model Project {
   seoDescription String?
   featured    Boolean        @default(false)
   technologies Technology[]
+  testimonials Testimonial[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
@@ -726,6 +812,12 @@ model FAQ {
 // CMS — Testimonial
 // ─────────────────────────────────────
 
+enum TestimonialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Testimonial {
   id        String   @id @default(cuid())
   quote     String
@@ -734,9 +826,27 @@ model Testimonial {
   company   String?
   initials  String
   rating    Int      @default(5)
+  // `active` still gates public visibility directly (unchanged query
+  // behavior everywhere it's already used); `status` is the moderation
+  // record of how it got there. Both are kept in sync by the
+  // approve/reject actions rather than merged into one field, so an
+  // approved testimonial can still be temporarily hidden without losing
+  // the fact that it was reviewed and approved.
   active    Boolean  @default(true)
+  status    TestimonialStatus @default(APPROVED)
+  image     String?
+  permissionToPublish Boolean @default(true)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([userId])
 }
 
 // ─────────────────────────────────────
@@ -758,6 +868,22 @@ model SiteSettings {
   seoDescription  String?
   seoKeywords     String?
   analyticsId     String?
+  // Tracking integrations (PRD section 18). Each has its own enabled flag
+  // — the site must not inject a script when disabled, regardless of
+  // whether an ID is still saved. All values here are public client-side
+  // identifiers (a Pixel ID, a Measurement ID, ...), never secrets — the
+  // one exception, metaCapiAccessToken, is deliberately never returned by
+  // GET /api/dashboard/settings (see that route).
+  fbPixelId          String?
+  fbPixelEnabled     Boolean @default(false)
+  metaCapiAccessToken String?
+  metaCapiEnabled    Boolean @default(false)
+  gtmContainerId     String?
+  gtmEnabled         Boolean @default(false)
+  ga4MeasurementId   String?
+  ga4Enabled         Boolean @default(false)
+  clarityProjectId   String?
+  clarityEnabled     Boolean @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
