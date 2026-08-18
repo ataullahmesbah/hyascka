@@ -4,6 +4,7 @@
 // ==========================================================
 import type { Metadata } from 'next';
 import Image from 'next/image';
+import Link from 'next/link';
 import { PageHero } from '@/components/page-hero';
 import { CTASection } from '@/components/cta-section';
 import { Reveal } from '@/components/reveal';
@@ -22,9 +23,9 @@ export const dynamic = 'force-dynamic';
 
 export default async function PortfolioPage() {
   const projects = await prisma.project.findMany({
-    where: { status: 'COMPLETED' },
+    where: { published: true },
     include: { technologies: true },
-    orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
+    orderBy: [{ featured: 'desc' }, { order: 'asc' }, { createdAt: 'desc' }],
   });
 
   const testimonials = await prisma.testimonial.findMany({
@@ -62,7 +63,10 @@ export default async function PortfolioPage() {
             <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((p, i) => (
                 <Reveal key={p.id} delay={i * 0.04}>
-                  <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-soft-lg">
+                  <Link
+                    href={`/portfolio/${p.slug}`}
+                    className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-soft-lg"
+                  >
                     <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden border-b border-border/60 bg-surface-secondary p-6">
                       {p.image ? (
                         <Image
@@ -107,7 +111,7 @@ export default async function PortfolioPage() {
                         </div>
                       )}
                     </div>
-                  </article>
+                  </Link>
                 </Reveal>
               ))}
             </div>

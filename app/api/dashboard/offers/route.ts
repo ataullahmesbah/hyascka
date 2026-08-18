@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/dashboard-auth';
 import { nextOfferNumber } from '@/lib/order-numbers';
+import { logActivity } from '@/lib/activity-log';
 
 const offerItemSchema = z.object({
     label: z.string().min(1).max(200),
@@ -97,6 +98,15 @@ export async function POST(req: Request) {
                 },
                 include: { items: true },
             });
+        });
+
+        await logActivity({
+            actorId: user.id,
+            actorRole: user.role.name,
+            action: 'offer.created',
+            targetType: 'CustomOffer',
+            targetId: offer.id,
+            description: `Offer created: ${offer.title}`,
         });
 
         return NextResponse.json(offer, { status: 201 });

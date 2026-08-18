@@ -13,6 +13,14 @@ const MANAGER_ROLES: RoleName[] = ['SUPER_ADMIN', 'ADMIN'];
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!MANAGER_ROLES.includes(session.user.role as RoleName)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const settings = await prisma.siteSettings.findFirst();
     return NextResponse.json(settings);
   } catch {

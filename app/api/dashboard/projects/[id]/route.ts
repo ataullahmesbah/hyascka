@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { projectSchema } from '@/lib/validation';
 import { slugify } from '@/lib/dashboard-auth';
+import { logActivity } from '@/lib/activity-log';
 import type { RoleName } from '@prisma/client';
 
 const ALLOWED_ROLES: RoleName[] = ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'EDITOR'];
@@ -48,6 +49,7 @@ export async function PUT(
     const technologyIds = (body.technologyIds as string[]) ?? [];
     const gallery = (body.gallery as string[]) ?? existing.gallery;
     const metrics = body.metrics as string | undefined ?? existing.metrics;
+    const isNewlyPublished = !existing.published && parsed.data.published;
 
     const updated = await prisma.project.update({
       where: { id: params.id },
@@ -63,6 +65,12 @@ export async function PUT(
         techStack: parsed.data.techStack,
         status: parsed.data.status,
         featured: parsed.data.featured,
+        published: parsed.data.published,
+        order: parsed.data.order,
+        projectUrl: parsed.data.projectUrl || null,
+        clientName: parsed.data.clientName,
+        seoTitle: parsed.data.seoTitle,
+        seoDescription: parsed.data.seoDescription,
         gallery,
         metrics,
         ...(technologyIds.length > 0
@@ -70,6 +78,17 @@ export async function PUT(
           : { technologies: { set: [] } }),
       },
       include: { technologies: true },
+    });
+
+    await logActivity({
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      action: isNewlyPublished ? 'project.published' : 'project.updated',
+      targetType: 'Project',
+      targetId: updated.id,
+      description: isNewlyPublished
+        ? `Project published: ${updated.title}`
+        : `Project updated: ${updated.title}`,
     });
 
     return NextResponse.json(updated);

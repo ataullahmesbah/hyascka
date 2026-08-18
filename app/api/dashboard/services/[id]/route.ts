@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { slugify, requirePermission } from '@/lib/dashboard-auth';
+import { logActivity } from '@/lib/activity-log';
 import { z } from 'zod';
 
 const serviceSchema = z.object({
@@ -84,6 +85,16 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       where: { id: params.id },
       data: { status: parsed.data.status },
     });
+
+    await logActivity({
+      actorId: user.id,
+      actorRole: user.role.name,
+      action: 'service.statusChanged',
+      targetType: 'Service',
+      targetId: updated.id,
+      description: `Service "${updated.title}" set to ${updated.status}`,
+    });
+
     return NextResponse.json(updated);
   } catch {
     return NextResponse.json({ error: 'Failed to update service status' }, { status: 500 });

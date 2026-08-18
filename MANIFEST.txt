@@ -1,0 +1,155 @@
+ZIP: hyascka-phase-b-dashboard-core.zip
+
+NEW (copy into your repo at the same path):
+- lib/activity-log.ts
+- app/api/dashboard/activity/route.ts
+- app/api/dashboard/reports/route.ts
+- prisma/migrations/20260818190900_add_activity_log/migration.sql
+
+MODIFIED (overwrite the existing file at the same path):
+- prisma/schema.prisma
+- app/api/contact/route.ts
+- app/api/dashboard/offers/route.ts
+- app/api/offers/[id]/accept/route.ts
+- app/api/conversations/[id]/messages/route.ts
+- app/api/dashboard/blog/[id]/route.ts
+- app/api/dashboard/projects/[id]/route.ts
+- app/api/dashboard/services/[id]/route.ts
+- app/dashboard/activity/page.tsx
+- app/dashboard/reports/page.tsx
+- hooks/use-dashboard-data.ts
+- components/dashboard/notification-bell.tsx
+- components/dashboard/dashboard-sidebar.tsx
+- constants/dashboard-nav.ts
+
+Excluded from this ZIP: node_modules, .next, .git, .env*, database dumps,
+secrets.
+
+------------------------------------------------------------
+REQUIRED: APPLY THE MIGRATION
+------------------------------------------------------------
+This phase adds one new table (ActivityLog). After copying files in:
+
+  npx prisma migrate deploy      (production / CI)
+  -- or, in local dev, if your dev DB is already in sync with the repo's
+  -- other migrations --
+  npx prisma migrate dev
+  npx prisma generate
+
+No existing table is touched, altered, or dropped — this migration only
+CREATEs the new ActivityLog table and its indexes/foreign key. It is safe
+to run against a database that already has real data in it.
+
+------------------------------------------------------------
+WHAT CHANGED AND WHY (PRD Phase B: dashboard analytics, reports,
+notifications, profile, home navigation, activity)
+------------------------------------------------------------
+
+1) ActivityLog model + lib/activity-log.ts + migration
+   New model for the operational "what's happening on the platform" feed
+   (PRD section 22) — separate from the existing SUPER_ADMIN-only AuditLog
+   (security/admin-action trail, section 21). logActivity() mirrors the
+   existing logAudit() helper: never throws, logs to console on failure
+   instead of rolling back the action it's describing.
+
+2) Instrumented with logActivity() at 7 points, matching the exact examples
+   PRD section 22 lists:
+   - app/api/contact/route.ts (POST)        -> "lead.created"
+   - app/api/dashboard/offers/route.ts (POST) -> "offer.created"
+   - app/api/offers/[id]/accept/route.ts    -> "offer.accepted" +
+     "order.created" (the accept endpoint creates the Order in the same
+     transaction, so both events are logged together)
+   - app/api/conversations/[id]/messages/route.ts (POST) -> "message.sent"
+   - app/api/dashboard/blog/[id]/route.ts (PUT) -> "blog.published" (only
+     logged on the DRAFT/SCHEDULED -> PUBLISHED transition, using the
+     wasPublished/isPublishing flags the route already computed — not
+     logged on every edit, to avoid noise)
+   - app/api/dashboard/projects/[id]/route.ts (PUT) -> "project.updated"
+   - app/api/dashboard/services/[id]/route.ts (PATCH) -> "service.statusChanged"
+   Note: the PRD's "testimonial submitted" example was NOT instrumented —
+   there is currently no public testimonial-submission API route in this
+   repo (only the dashboard/admin-created path exists), so that flow
+   doesn't exist yet to log. Building it is Phase G (Testimonials/FAQ/
+   Newsletter) work, not Phase B.
+
+3) app/api/dashboard/activity/route.ts + app/dashboard/activity/page.tsx
+   The Activity Logs dashboard page was previously 100% hardcoded mock data
+   (mockActivities array, no fetch call at all). Replaced with a real
+   ActivityLog query (latest 50, today's count), gated to SUPER_ADMIN/ADMIN
+   via requirePermission('dashboard.viewAgencyOverview') — the same
+   capability already gating /dashboard/analytics, matching this page's nav
+   role gate.
+
+4) app/api/dashboard/reports/route.ts + app/dashboard/reports/page.tsx
+   The System Reports page was previously 100% hardcoded fake numbers
+   ($678K revenue, 1.2M page views, etc. — static literals, no fetch call).
+   Replaced with real Order/Project/Blog/Newsletter/Contact-derived figures
+   for the current calendar year: revenue by month (from PAID orders),
+   projects created per quarter, lead sources (Contact.source), published
+   blog count, active newsletter subscriber count, new CLIENT signups vs.
+   last year. Removed the "Export CSV" / "Generate Report" buttons that had
+   no onClick handler in the original — decorative dead buttons, not real
+   functionality; PRD explicitly says not to fake results.
+   NOTE: "Page Views" and "Conversions" from the old mock data are GONE —
+   this app has no visitor-tracking pipeline (no pageview capture), so
+   those numbers were always fabricated. Replaced with real metrics
+   (Published Posts, Newsletter Subscribers) instead of inventing traffic
+   data. If real web analytics are wanted later, that's a GA4/Clarity
+   integration (PRD section 18), not something Reports can compute itself.
+
+5) hooks/use-dashboard-data.ts + components/dashboard/notification-bell.tsx
+   PRD section 23: unread notification count must not go stale during a
+   live session. The hook already supported revalidateOnFocus but
+   NotificationBell wasn't passing it, and there was no polling at all — a
+   notification created while the dashboard tab was open and focused would
+   never appear until a manual mark-read/mark-all-read refetch. Added an
+   opt-in pollIntervalMs option (only polls while the tab is visible, via
+   document.visibilityState) and wired NotificationBell to
+   revalidateOnFocus:true + pollIntervalMs:30000.
+
+6) constants/dashboard-nav.ts + components/dashboard/dashboard-sidebar.tsx
+   PRD section 25: added a "View Website" link (Home icon) to '/' in the
+   dashboard sidebar's account-items section.
+   IMPORTANT correction made during this same change: the live sidebar
+   component is components/dashboard/dashboard-shell.tsx (wired into
+   app/dashboard/layout.tsx), NOT dashboard-sidebar.tsx, which is dead/
+   unused code — nothing imports it. dashboard-shell.tsx already worked
+   around a real bug: dashboardAccountItems' Logout entry points to
+   '/api/auth/logout', a route that does not exist; dashboard-shell.tsx
+   special-cases that exact href string to call next-auth's signOut()
+   instead of navigating there. Our first pass at this file mistakenly
+   removed the Logout entry from dashboardAccountItems entirely, which
+   would have deleted the sidebar's real signOut button in production. That
+   was caught and reverted before finalizing — dashboardAccountItems is
+   unchanged apart from adding View Website, and dashboard-shell.tsx (the
+   live file) required no changes at all. dashboard-sidebar.tsx (the dead
+   file) was still fixed to use the same isLogout pattern for consistency,
+   since we had already touched it, but it has zero effect on the running
+   app either way.
+
+------------------------------------------------------------
+VERIFICATION PERFORMED IN THIS ENVIRONMENT
+------------------------------------------------------------
+- `npx prisma generate` + `DATABASE_URL=<dummy> npx prisma validate` against
+  the real schema.prisma (with ActivityLog added) — schema is valid.
+- `npx tsc --noEmit` — 0 errors, full repo.
+- `npx eslint` on every changed file — 0 issues.
+- `npx vitest run` — 17/17 existing tests still pass.
+- Confirmed via grep which component actually renders the dashboard sidebar
+  (dashboard-shell.tsx, not dashboard-sidebar.tsx) before finalizing the
+  Home-link/Logout change, after first getting it wrong.
+
+NOT performed (no live database or browser in this environment) — please
+verify locally before merging:
+- Actually running `prisma migrate dev`/`deploy` against a real Postgres
+  database and confirming the ActivityLog table is created cleanly.
+- Loading /dashboard/activity and /dashboard/reports as SUPER_ADMIN/ADMIN
+  and confirming real numbers render (will be all-zero/empty on a fresh DB
+  until leads/offers/orders/messages/blog posts/projects/services actually
+  exist).
+- Submitting the public contact form, creating/accepting an offer, sending
+  a dashboard message, and publishing a blog post, then confirming each one
+  produces a new row on /dashboard/activity.
+- Confirming the notification bell's unread badge updates within ~30s of a
+  new notification being created elsewhere, without any manual action.
+- Clicking "View Website" and "Logout" in the dashboard sidebar.

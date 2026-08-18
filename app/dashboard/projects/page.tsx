@@ -55,6 +55,12 @@ interface Project {
   image: string | null;
   status: string;
   featured: boolean;
+  published: boolean;
+  order: number;
+  projectUrl: string | null;
+  clientName: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
   techStack: string[];
   technologies: { id: string; name: string }[];
   createdAt: string;
@@ -82,6 +88,12 @@ export default function ProjectsPage() {
     overview: '',
     status: 'COMPLETED',
     featured: false,
+    published: false,
+    order: 0,
+    projectUrl: '',
+    clientName: '',
+    seoTitle: '',
+    seoDescription: '',
     image: '',
     techStack: '',
   });
@@ -100,12 +112,22 @@ export default function ProjectsPage() {
         overview: project.overview ?? '',
         status: project.status,
         featured: project.featured,
+        published: project.published,
+        order: project.order,
+        projectUrl: project.projectUrl ?? '',
+        clientName: project.clientName ?? '',
+        seoTitle: project.seoTitle ?? '',
+        seoDescription: project.seoDescription ?? '',
         image: project.image ?? '',
         techStack: project.techStack.join(', '),
       });
     } else {
       setEditingProject(null);
-      setFormData({ title: '', category: '', overview: '', status: 'COMPLETED', featured: false, image: '', techStack: '' });
+      setFormData({
+        title: '', category: '', overview: '', status: 'COMPLETED', featured: false,
+        published: false, order: 0, projectUrl: '', clientName: '', seoTitle: '', seoDescription: '',
+        image: '', techStack: '',
+      });
     }
     setEditorOpen(true);
   };
@@ -125,6 +147,7 @@ export default function ProjectsPage() {
         body: JSON.stringify({
           ...formData,
           slug: '',
+          order: Number(formData.order) || 0,
           techStack: formData.techStack.split(',').map((t) => t.trim()).filter(Boolean),
         }),
       });
@@ -180,8 +203,8 @@ export default function ProjectsPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Projects" value={(projects ?? []).length} icon={FolderKanban} accent="primary" />
-        <StatCard title="Completed" value={(projects ?? []).filter((p) => p.status === 'COMPLETED').length} icon={FolderKanban} accent="success" />
-        <StatCard title="In Progress" value={(projects ?? []).filter((p) => p.status === 'IN_PROGRESS').length} icon={FolderKanban} accent="primary" />
+        <StatCard title="Published" value={(projects ?? []).filter((p) => p.published).length} icon={FolderKanban} accent="success" />
+        <StatCard title="Drafts" value={(projects ?? []).filter((p) => !p.published).length} icon={FolderKanban} accent="accent" />
         <StatCard title="Featured" value={(projects ?? []).filter((p) => p.featured).length} icon={Star} accent="warning" />
       </div>
 
@@ -221,6 +244,9 @@ export default function ProjectsPage() {
                       <h3 className="font-medium">{project.title}</h3>
                       <p className="mt-1 text-xs text-muted-foreground">{project.category}</p>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary" className={cn('text-[10px]', project.published ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground')}>
+                          {project.published ? 'Published' : 'Draft'}
+                        </Badge>
                         <Badge variant="secondary" className={cn('text-[10px]', statusColors[project.status])}>
                           {project.status.replace('_', ' ')}
                         </Badge>
@@ -296,9 +322,39 @@ export default function ProjectsPage() {
               <Label htmlFor="techStack">Tech Stack (comma-separated)</Label>
               <Input id="techStack" value={formData.techStack} onChange={(e) => setFormData({ ...formData, techStack: e.target.value })} placeholder="Next.js, TypeScript, PostgreSQL" />
             </div>
-            <div className="flex items-center gap-3">
-              <Switch id="featured" checked={formData.featured} onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })} />
-              <Label htmlFor="featured">Featured project</Label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="clientName">Client Name</Label>
+                <Input id="clientName" value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value })} placeholder="Optional" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="projectUrl">Project URL</Label>
+                <Input id="projectUrl" type="url" value={formData.projectUrl} onChange={(e) => setFormData({ ...formData, projectUrl: e.target.value })} placeholder="https://..." />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="seoTitle">SEO Title</Label>
+                <Input id="seoTitle" value={formData.seoTitle} onChange={(e) => setFormData({ ...formData, seoTitle: e.target.value })} maxLength={70} placeholder="Falls back to project title" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="order">Order</Label>
+                <Input id="order" type="number" value={formData.order} onChange={(e) => setFormData({ ...formData, order: Number(e.target.value) })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="seoDescription">SEO Description</Label>
+              <Textarea id="seoDescription" value={formData.seoDescription} onChange={(e) => setFormData({ ...formData, seoDescription: e.target.value })} maxLength={160} rows={2} placeholder="Falls back to project overview" />
+            </div>
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex items-center gap-3">
+                <Switch id="published" checked={formData.published} onCheckedChange={(checked) => setFormData({ ...formData, published: checked })} />
+                <Label htmlFor="published">Published (visible on the public portfolio)</Label>
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch id="featured" checked={formData.featured} onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })} />
+                <Label htmlFor="featured">Featured project</Label>
+              </div>
             </div>
           </div>
           <DialogFooter>

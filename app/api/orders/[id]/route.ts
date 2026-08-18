@@ -1,4 +1,6 @@
 // FILE: app/api/orders/[id]/route.ts
+
+// FILE: app/api/orders/[id]/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getDashboardUser, requireOwnership } from '@/lib/dashboard-auth';
@@ -16,7 +18,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
                 user: { select: { id: true, name: true, email: true } },
                 payment: true,
                 invoice: true,
-                clientService: true,
+                clientServices: true,
             },
         });
 

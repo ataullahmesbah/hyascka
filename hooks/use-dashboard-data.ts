@@ -4,6 +4,11 @@ import * as React from 'react';
 
 interface UseDashboardDataOptions {
   revalidateOnFocus?: boolean;
+  /** Re-fetch on this interval (ms) while the tab is visible — e.g. for the
+   * notification bell, so a new notification created elsewhere shows up
+   * without the user having to trigger a manual refetch. Omit for one-shot
+   * fetch-on-mount data that doesn't need to stay live. */
+  pollIntervalMs?: number;
 }
 
 interface UseDashboardDataResult<T> {
@@ -59,18 +64,25 @@ export function useDashboardData<T>(
 
     fetchData();
 
+    const cleanups: Array<() => void> = [];
+
     if (options.revalidateOnFocus) {
       window.addEventListener('focus', fetchData);
-      return () => {
-        cancelled = true;
-        window.removeEventListener('focus', fetchData);
-      };
+      cleanups.push(() => window.removeEventListener('focus', fetchData));
+    }
+
+    if (options.pollIntervalMs) {
+      const interval = setInterval(() => {
+        if (document.visibilityState === 'visible') fetchData();
+      }, options.pollIntervalMs);
+      cleanups.push(() => clearInterval(interval));
     }
 
     return () => {
       cancelled = true;
+      cleanups.forEach((fn) => fn());
     };
-  }, [url, refetchKey, options.revalidateOnFocus]);
+  }, [url, refetchKey, options.revalidateOnFocus, options.pollIntervalMs]);
 
   return { data, loading, error, refetch };
 }

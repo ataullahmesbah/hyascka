@@ -7,8 +7,9 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft } from 'lucide-react';
+import { X, ChevronLeft, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { dashboardNavGroups, dashboardAccountItems, type DashboardRole } from '@/constants/dashboard-nav';
 import { Logo } from './logo';
@@ -95,21 +96,36 @@ export function DashboardSidebar({ open, onClose, userRole }: DashboardSidebarPr
         <ul className="space-y-0.5">
           {dashboardAccountItems.map((item) => {
             const active = isActive(item.href);
+            // '/api/auth/logout' is a sentinel href (see dashboard-nav.ts) —
+            // it needs next-auth's signOut() for real session invalidation,
+            // not client-side navigation to a route that doesn't exist.
+            const isLogout = item.href === '/api/auth/logout';
             return (
               <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={onClose}
-                  className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
-                    active
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                  )}
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  <span>{item.label}</span>
-                </Link>
+                {isLogout ? (
+                  <button
+                    type="button"
+                    onClick={() => signOut({ callbackUrl: '/', redirect: true })}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground"
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </button>
+                ) : (
+                  <Link
+                    href={item.href}
+                    onClick={onClose}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
+                      active
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    )}
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                )}
               </li>
             );
           })}

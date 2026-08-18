@@ -42,7 +42,10 @@ function timeAgo(iso: string): string {
 
 export function NotificationBell() {
     const router = useRouter();
-    const { data, loading, refetch } = useDashboardData<NotificationsResponse>('/api/notifications');
+    const { data, loading, refetch } = useDashboardData<NotificationsResponse>('/api/notifications', {
+        revalidateOnFocus: true,
+        pollIntervalMs: 30000,
+    });
     const [markingAll, setMarkingAll] = React.useState(false);
 
     const unreadCount = data?.unreadCount ?? 0;

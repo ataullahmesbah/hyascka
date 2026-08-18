@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requirePermission } from '@/lib/dashboard-auth';
 import { nextOrderNumber } from '@/lib/order-numbers';
 import { notify } from '@/lib/notifications';
+import { logActivity } from '@/lib/activity-log';
 
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
     try {
@@ -76,6 +77,23 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
             type: 'OFFER_ACCEPTED',
             title: `Offer accepted: ${offer.title}`,
             link: `/dashboard/offers/${offer.id}`,
+        });
+
+        await logActivity({
+            actorId: user.id,
+            actorRole: user.role.name,
+            action: 'offer.accepted',
+            targetType: 'CustomOffer',
+            targetId: offer.id,
+            description: `Offer accepted: ${offer.title}`,
+        });
+        await logActivity({
+            actorId: user.id,
+            actorRole: user.role.name,
+            action: 'order.created',
+            targetType: 'Order',
+            targetId: result.order.id,
+            description: `Order ${result.order.orderNumber} created from accepted offer "${offer.title}"`,
         });
 
         return NextResponse.json({ ...result, alreadyAccepted: false });

@@ -84,6 +84,12 @@ export async function POST(req: Request) {
         techStack: parsed.data.techStack,
         status: parsed.data.status,
         featured: parsed.data.featured,
+        published: parsed.data.published,
+        order: parsed.data.order,
+        projectUrl: parsed.data.projectUrl || null,
+        clientName: parsed.data.clientName,
+        seoTitle: parsed.data.seoTitle,
+        seoDescription: parsed.data.seoDescription,
         gallery,
         metrics,
         ...(technologyIds.length > 0 && {

@@ -4,9 +4,9 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const portfolio = await prisma.project.findMany({
-      where: { featured: true, status: 'COMPLETED' },
+      where: { featured: true, published: true },
       include: { technologies: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
     });
     return NextResponse.json(portfolio);
   } catch {

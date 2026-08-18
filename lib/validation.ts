@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 // ─────────────────────────────────────
@@ -84,7 +85,7 @@ export const newsletterSchema = z.object({
 
 export const blogSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
-  slug: z.string().min(1, 'Slug is required').max(200),
+  slug: z.string().max(200).optional(),
   excerpt: z.string().optional(),
   content: z.string().optional(),
   featuredImage: z.string().optional(),
@@ -99,7 +100,7 @@ export const blogSchema = z.object({
 
 export const projectSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
-  slug: z.string().min(1, 'Slug is required').max(200),
+  slug: z.string().max(200).optional(),
   category: z.string().min(1, 'Category is required'),
   overview: z.string().optional(),
   challenge: z.string().optional(),
@@ -109,6 +110,12 @@ export const projectSchema = z.object({
   techStack: z.array(z.string()).default([]),
   status: z.enum(['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD', 'CANCELLED']).default('COMPLETED'),
   featured: z.boolean().default(false),
+  published: z.boolean().default(false),
+  order: z.number().int().default(0),
+  projectUrl: z.string().url('Enter a valid URL').optional().or(z.literal('')),
+  clientName: z.string().max(200).optional(),
+  seoTitle: z.string().max(70).optional(),
+  seoDescription: z.string().max(160).optional(),
 });
 
 // ─────────────────────────────────────

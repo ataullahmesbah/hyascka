@@ -108,6 +108,7 @@ model User {
   notifications          Notification[]
   sentInvitations        ClientInvitation[]        @relation("InvitationInvitedBy")
   auditLogs              AuditLog[]
+  activityLogs            ActivityLog[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -465,6 +466,17 @@ model Project {
   techStack   String[]
   metrics     String?
   status      ProjectStatus  @default(COMPLETED)
+  // Publish visibility, independent of `status` (project lifecycle stage).
+  // A project can be internally COMPLETED but still a private draft, or
+  // IN_PROGRESS and already shown publicly as a live case study — the two
+  // are separate concerns. Public pages must filter on `published`, never
+  // on `status` alone.
+  published   Boolean        @default(false)
+  order       Int            @default(0)
+  projectUrl  String?
+  clientName  String?
+  seoTitle    String?
+  seoDescription String?
   featured    Boolean        @default(false)
   technologies Technology[]
   createdAt   DateTime       @default(now())
@@ -472,6 +484,7 @@ model Project {
 
   @@index([status])
   @@index([category])
+  @@index([published])
 }
 
 // ─────────────────────────────────────
@@ -755,6 +768,27 @@ model AuditLog {
   targetId   String?
   metadata   Json?
   createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// Operational activity feed — distinct from AuditLog (security-sensitive,
+// SUPER_ADMIN-only). ActivityLog is the everyday "what's happening on the
+// platform" timeline (new lead, offer accepted, message sent, ...) surfaced
+// to SUPER_ADMIN/ADMIN on /dashboard/activity. Never store secrets/passwords
+// here; `description` is the human-readable line rendered directly in the UI.
+model ActivityLog {
+  id          String   @id @default(cuid())
+  actorId     String?
+  actor       User?    @relation(fields: [actorId], references: [id])
+  actorRole   String?
+  action      String
+  targetType  String?
+  targetId    String?
+  description String
+  createdAt   DateTime @default(now())
 
   @@index([actorId])
   @@index([action])

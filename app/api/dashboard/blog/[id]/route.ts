@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { blogSchema } from '@/lib/validation';
 import { slugify } from '@/lib/dashboard-auth';
+import { logActivity } from '@/lib/activity-log';
 import type { RoleName } from '@prisma/client';
 
 const ALLOWED_ROLES: RoleName[] = ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'EDITOR'];
@@ -100,6 +101,17 @@ export async function PUT(
         tags: true,
       },
     });
+
+    if (!wasPublished && isPublishing) {
+      await logActivity({
+        actorId: session.user.id,
+        actorRole: session.user.role,
+        action: 'blog.published',
+        targetType: 'Blog',
+        targetId: updated.id,
+        description: `Blog published: ${updated.title}`,
+      });
+    }
 
     return NextResponse.json(updated);
   } catch {

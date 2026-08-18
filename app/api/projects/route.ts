@@ -1,6 +1,10 @@
+// FILE: app/api/projects/route.ts
+// PURPOSE: Public read-only project listing. Creation happens only through
+// the authenticated /api/dashboard/projects route — this endpoint used to
+// also expose an unauthenticated POST that let anyone create Project rows
+// directly; that handler has been removed as a security fix.
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { projectSchema } from '@/lib/validation';
 
 export async function GET(req: Request) {
   try {
@@ -10,11 +14,12 @@ export async function GET(req: Request) {
 
     const projects = await prisma.project.findMany({
       where: {
+        published: true,
         ...(featured === 'true' && { featured: true }),
         ...(category && { category }),
       },
       include: { technologies: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
     });
 
     return NextResponse.json(projects);
@@ -25,6 +30,7 @@ export async function GET(req: Request) {
     );
   }
 }
+
 
 export async function POST(req: Request) {
   try {

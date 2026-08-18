@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { getDashboardUser } from '@/lib/dashboard-auth';
 import { can, type Role } from '@/lib/permissions';
 import { notify } from '@/lib/notifications';
+import { logActivity } from '@/lib/activity-log';
 
 const sendSchema = z.object({
     content: z.string().min(1).max(4000),
@@ -61,6 +62,15 @@ export async function POST(req: Request, { params }: { params: { id: string } })
                 })
             )
         );
+
+        await logActivity({
+            actorId: user.id,
+            actorRole: user.role.name,
+            action: 'message.sent',
+            targetType: 'Conversation',
+            targetId: conversation.id,
+            description: `Message sent in conversation ${conversation.id}`,
+        });
 
         return NextResponse.json(message, { status: 201 });
     } catch {

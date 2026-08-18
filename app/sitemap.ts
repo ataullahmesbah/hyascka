@@ -51,6 +51,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('sitemap: failed to load services, falling back to static routes only', error);
   }
 
+  let projectEntries: MetadataRoute.Sitemap = [];
+  try {
+    const projects = await prisma.project.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    });
+    projectEntries = projects.map((project) => ({
+      url: `${SITE_URL}/portfolio/${project.slug}`,
+      lastModified: project.updatedAt,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    }));
+  } catch (error) {
+    console.error('sitemap: failed to load projects, falling back to static routes only', error);
+  }
+
   let blogEntries: MetadataRoute.Sitemap = [];
   try {
     const posts = await prisma.blog.findMany({
@@ -67,5 +83,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('sitemap: failed to load blog posts, falling back to static routes only', error);
   }
 
-  return [...staticEntries, ...serviceEntries, ...blogEntries];
+  return [...staticEntries, ...serviceEntries, ...projectEntries, ...blogEntries];
 }

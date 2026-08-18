@@ -35,6 +35,7 @@ import {
   ReceiptText,
   UserPlus,
   FileSignature,
+  Home,
 } from 'lucide-react';
 
 export type DashboardRole = Role;
@@ -124,7 +125,13 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
   },
 ];
 
+// Rendered by DashboardShell (components/dashboard/dashboard-shell.tsx),
+// which special-cases the exact href '/api/auth/logout' below to call
+// next-auth's signOut() instead of navigating — that route doesn't really
+// exist, it's a sentinel value DashboardShell checks for. Do not remove or
+// rename the Logout entry without updating that check.
 export const dashboardAccountItems: DashboardNavItem[] = [
+  { label: 'View Website', href: '/', icon: Home },
   { label: 'Profile', href: '/dashboard/profile', icon: User },
   { label: 'Logout', href: '/api/auth/logout', icon: LogOut },
 ];

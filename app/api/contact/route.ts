@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { contactSchema } from '@/lib/validation';
 import { sendEmail, contactNotificationEmail } from '@/lib/email';
 import { notify } from '@/lib/notifications';
+import { logActivity } from '@/lib/activity-log';
 
 export async function POST(req: Request) {
   try {
@@ -32,6 +33,15 @@ export async function POST(req: Request) {
         isCustomRequest: isCustomRequest ?? false,
         userId: session?.user?.id,
       },
+    });
+
+    await logActivity({
+      actorId: session?.user?.id ?? null,
+      actorRole: session?.user?.role ?? null,
+      action: 'lead.created',
+      targetType: 'Contact',
+      targetId: contact.id,
+      description: `New lead: ${contact.name}`,
     });
 
     // Notify every staff member who can work leads (SUPER_ADMIN/ADMIN/
