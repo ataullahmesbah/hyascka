@@ -11,6 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -39,23 +46,31 @@ interface FAQ {
   answer: string;
   order: number;
   active: boolean;
+  serviceId: string | null;
+  service: { id: string; title: string } | null;
+}
+
+interface ServiceOption {
+  id: string;
+  title: string;
 }
 
 export default function FAQPage() {
   const [editorOpen, setEditorOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<FAQ | null>(null);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
-  const [formData, setFormData] = React.useState({ question: '', answer: '', order: 0, active: true });
+  const [formData, setFormData] = React.useState({ question: '', answer: '', order: 0, active: true, serviceId: 'global' });
 
   const { data: faqs, loading, error, refetch } = useDashboardData<FAQ[]>('/api/dashboard/faq');
+  const { data: services } = useDashboardData<ServiceOption[]>('/api/dashboard/services');
 
   const openEditor = (faq: FAQ | null) => {
     if (faq) {
       setEditing(faq);
-      setFormData({ question: faq.question, answer: faq.answer, order: faq.order, active: faq.active });
+      setFormData({ question: faq.question, answer: faq.answer, order: faq.order, active: faq.active, serviceId: faq.serviceId ?? 'global' });
     } else {
       setEditing(null);
-      setFormData({ question: '', answer: '', order: (faqs ?? []).length, active: true });
+      setFormData({ question: '', answer: '', order: (faqs ?? []).length, active: true, serviceId: 'global' });
     }
     setEditorOpen(true);
   };
@@ -71,7 +86,10 @@ export default function FAQPage() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          serviceId: formData.serviceId === 'global' ? null : formData.serviceId,
+        }),
       });
       if (!res.ok) throw new Error('Failed to save');
       toast.success(editing ? 'FAQ updated' : 'FAQ created');
@@ -133,6 +151,9 @@ export default function FAQPage() {
                     <p className="mt-1 text-xs text-muted-foreground">{faq.answer}</p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className={cn('text-[10px]', faq.service ? 'bg-accent/10 text-accent' : 'bg-primary/10 text-primary')}>
+                      {faq.service ? faq.service.title : 'Global'}
+                    </Badge>
                     <Badge variant="secondary" className={cn('text-[10px]', faq.active ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground')}>
                       {faq.active ? 'Active' : 'Inactive'}
                     </Badge>
@@ -168,6 +189,18 @@ export default function FAQPage() {
             <div className="space-y-2"><Label htmlFor="answer">Answer</Label><Textarea id="answer" value={formData.answer} onChange={(e) => setFormData({ ...formData, answer: e.target.value })} rows={3} /></div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2"><Label htmlFor="order">Display Order</Label><Input id="order" type="number" value={formData.order} onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })} /></div>
+              <div className="space-y-2">
+                <Label htmlFor="scope">Scope</Label>
+                <Select value={formData.serviceId} onValueChange={(v) => setFormData({ ...formData, serviceId: v })}>
+                  <SelectTrigger id="scope"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="global">Global (general FAQ)</SelectItem>
+                    {(services ?? []).map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <Switch id="active" checked={formData.active} onCheckedChange={(checked) => setFormData({ ...formData, active: checked })} />

@@ -291,6 +291,10 @@ model Service {
   slug             String           @unique
   shortDescription String?
   description      String?
+  // "Our Approach" section on the public service detail page — kept
+  // distinct from `description` ("What We Do"), which PRD section 8
+  // treats as a separate content block.
+  approach         String?
   image            String?
   icon             String?
   features         String[]
@@ -309,6 +313,7 @@ model Service {
   clientServices   ClientService[]
   invoices         Invoice[]
   offerItems       OfferItem[]
+  faqs             FAQ[]
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -706,8 +711,15 @@ model FAQ {
   answer    String
   order     Int      @default(0)
   active    Boolean  @default(true)
+  // null = global FAQ (shown on the general FAQ section); set = scoped to
+  // one service's detail page. Reuses this single model for both rather
+  // than duplicating it as a separate ServiceFAQ model.
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
 }
 
 // ─────────────────────────────────────

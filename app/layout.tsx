@@ -9,11 +9,12 @@ import { Inter, Space_Grotesk } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Providers } from '@/components/providers';
-import { Navbar } from '@/components/navbar';
+import { Navbar, type NavServiceGroup } from '@/components/navbar';
 import { Footer } from '@/components/sections/footer';
 import { LoadingScreen } from '@/components/loading-screen';
 import { BackToTop } from '@/components/back-to-top';
 import { AuthNotice } from '@/components/auth/auth-notice';
+import { prisma } from '@/lib/prisma';
 
 const sans = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
 const display = Space_Grotesk({
@@ -77,11 +78,40 @@ const websiteJsonLd = {
   },
 };
 
-export default function RootLayout({
+// Feeds the navbar's Services mega-menu (constants/navigation.ts §28) —
+// fetched once here, server-side, so the client Navbar component never
+// needs its own data-fetching effect. A DB hiccup falls back to an empty
+// array; Navbar renders a plain "Browse all services" link in that case
+// rather than breaking the whole site's header.
+async function getNavServiceGroups(): Promise<NavServiceGroup[]> {
+  try {
+    const categories = await prisma.serviceCategory.findMany({
+      where: { isActive: true },
+      orderBy: { order: 'asc' },
+      include: {
+        services: {
+          where: { status: 'PUBLISHED' },
+          orderBy: { order: 'asc' },
+          select: { id: true, title: true, slug: true },
+        },
+      },
+    });
+    return categories
+      .filter((c) => c.services.length > 0)
+      .map((c) => ({ id: c.id, name: c.name, slug: c.slug, services: c.services }));
+  } catch (error) {
+    console.error('layout: failed to load nav service groups', error);
+    return [];
+  }
+}
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const serviceGroups = await getNavServiceGroups();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -111,7 +141,7 @@ export default function RootLayout({
         >
           <Providers>
             <LoadingScreen />
-            <Navbar />
+            <Navbar serviceGroups={serviceGroups} />
             <main className="min-h-screen">{children}</main>
             <Footer />
             <BackToTop />

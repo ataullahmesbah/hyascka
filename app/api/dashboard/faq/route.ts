@@ -12,11 +12,14 @@ const faqSchema = z.object({
   answer: z.string().min(1).max(2000),
   order: z.number().int().default(0),
   active: z.boolean().default(true),
+  // null/omitted = global FAQ; set = scoped to one service's detail page.
+  serviceId: z.string().nullable().optional(),
 });
 
 export async function GET() {
   try {
     const faqs = await prisma.fAQ.findMany({
+      include: { service: { select: { id: true, title: true } } },
       orderBy: { order: 'asc' },
     });
     return NextResponse.json(faqs);

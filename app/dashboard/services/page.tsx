@@ -55,6 +55,7 @@ interface Service {
   slug: string;
   shortDescription: string | null;
   description: string | null;
+  approach: string | null;
   image: string | null;
   icon: string | null;
   features: string[];
@@ -76,6 +77,7 @@ const emptyForm = {
   slug: '',
   shortDescription: '',
   description: '',
+  approach: '',
   image: '',
   icon: '',
   features: '', // comma-separated in the form, split on save
@@ -110,6 +112,7 @@ export default function ServicesPage() {
         slug: service.slug,
         shortDescription: service.shortDescription ?? '',
         description: service.description ?? '',
+        approach: service.approach ?? '',
         image: service.image ?? '',
         icon: service.icon ?? '',
         features: service.features.join(', '),
@@ -150,6 +153,7 @@ export default function ServicesPage() {
         slug: formData.slug || undefined,
         shortDescription: formData.shortDescription || undefined,
         description: formData.description || undefined,
+        approach: formData.approach || undefined,
         image: formData.image || undefined,
         icon: formData.icon || undefined,
         features: formData.features
@@ -344,12 +348,17 @@ export default function ServicesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Full Description</Label>
-              <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={4} />
+              <Label htmlFor="description">What We Do</Label>
+              <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={4} placeholder="Shown as the 'What We Do' section on the service page" />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="features">Features (comma-separated)</Label>
+              <Label htmlFor="approach">Our Approach</Label>
+              <Textarea id="approach" value={formData.approach} onChange={(e) => setFormData({ ...formData, approach: e.target.value })} rows={4} placeholder="Shown as the 'Our Approach' section on the service page" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="features">What&apos;s Included (comma-separated)</Label>
               <Textarea id="features" value={formData.features} onChange={(e) => setFormData({ ...formData, features: e.target.value })} rows={2} placeholder="Strategy, Implementation, Reporting" />
             </div>
 

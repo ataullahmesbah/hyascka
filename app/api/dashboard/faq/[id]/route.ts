@@ -12,6 +12,7 @@ const faqSchema = z.object({
   answer: z.string().min(1).max(2000),
   order: z.number().int().default(0),
   active: z.boolean().default(true),
+  serviceId: z.string().nullable().optional(),
 });
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {

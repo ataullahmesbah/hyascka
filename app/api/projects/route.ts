@@ -1,8 +1,5 @@
 // FILE: app/api/projects/route.ts
-// PURPOSE: Public read-only project listing. Creation happens only through
-// the authenticated /api/dashboard/projects route — this endpoint used to
-// also expose an unauthenticated POST that let anyone create Project rows
-// directly; that handler has been removed as a security fix.
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -30,6 +27,7 @@ export async function GET(req: Request) {
     );
   }
 }
+
 
 
 export async function POST(req: Request) {

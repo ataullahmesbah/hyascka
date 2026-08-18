@@ -1,155 +1,176 @@
-ZIP: hyascka-phase-b-dashboard-core.zip
+ZIP: hyascka-phases-abcd-combined.zip
+Combined snapshot of Phase A (Security Audit) + Phase B (Dashboard Core)
++ Phase C (Projects) + Phase D (Services), applied on top of the repo's
+`main` branch at commit 782ce684b3602bc53db0337a5564d796a43e3463
+("major issue solve"). This supersedes the earlier hyascka-phases-abc-
+combined.zip — use this one.
 
-NEW (copy into your repo at the same path):
-- lib/activity-log.ts
+DELETED (delete these 5 files from your local repo; not included in this
+ZIP since they no longer exist):
+- app/api/login/route.ts               (Phase A — dead, unauthenticated)
+- app/api/register/route.ts            (Phase A — dead, unauthenticated)
+- app/api/logout/route.ts              (Phase A — dead, unauthenticated)
+- actions/upload/actions.ts            (Phase A — dead, unauthenticated)
+- constants/faq.ts                     (Phase D — dead after FAQ section
+                                         was wired to the real database)
+
+NEW (copy into your repo at the same path) — 8 files:
 - app/api/dashboard/activity/route.ts
 - app/api/dashboard/reports/route.ts
+- app/portfolio/[slug]/page.tsx
+- lib/activity-log.ts
 - prisma/migrations/20260818190900_add_activity_log/migration.sql
+- prisma/migrations/20260818200000_add_project_publish_fields/migration.sql
+- prisma/migrations/20260818210000_add_service_approach_and_faq_link/migration.sql
 
-MODIFIED (overwrite the existing file at the same path):
-- prisma/schema.prisma
+MODIFIED (overwrite the existing file at the same path) — 27 files:
+- app/api/blog/route.ts
 - app/api/contact/route.ts
-- app/api/dashboard/offers/route.ts
-- app/api/offers/[id]/accept/route.ts
 - app/api/conversations/[id]/messages/route.ts
 - app/api/dashboard/blog/[id]/route.ts
+- app/api/dashboard/faq/[id]/route.ts
+- app/api/dashboard/faq/route.ts
+- app/api/dashboard/offers/route.ts
 - app/api/dashboard/projects/[id]/route.ts
+- app/api/dashboard/projects/route.ts
 - app/api/dashboard/services/[id]/route.ts
+- app/api/dashboard/services/route.ts
+- app/api/dashboard/settings/route.ts
+- app/api/offers/[id]/accept/route.ts
+- app/api/orders/[id]/route.ts
+- app/api/portfolio/route.ts
+- app/api/projects/route.ts
 - app/dashboard/activity/page.tsx
+- app/dashboard/faq/page.tsx
+- app/dashboard/projects/page.tsx
 - app/dashboard/reports/page.tsx
-- hooks/use-dashboard-data.ts
-- components/dashboard/notification-bell.tsx
+- app/dashboard/services/page.tsx
+- app/layout.tsx
+- app/portfolio/page.tsx
+- app/services/[slug]/page.tsx
+- app/sitemap.ts
 - components/dashboard/dashboard-sidebar.tsx
+- components/dashboard/notification-bell.tsx
+- components/navbar.tsx
+- components/sections/faq.tsx
 - constants/dashboard-nav.ts
+- hooks/use-dashboard-data.ts
+- lib/validation.ts
+- prisma/schema.prisma
 
 Excluded from this ZIP: node_modules, .next, .git, .env*, database dumps,
-secrets.
+secrets, unrelated project files.
 
 ------------------------------------------------------------
-REQUIRED: APPLY THE MIGRATION
+REQUIRED: APPLY ALL THREE MIGRATIONS, IN ORDER
 ------------------------------------------------------------
-This phase adds one new table (ActivityLog). After copying files in:
-
   npx prisma migrate deploy      (production / CI)
-  -- or, in local dev, if your dev DB is already in sync with the repo's
-  -- other migrations --
+  -- or, in local dev --
   npx prisma migrate dev
   npx prisma generate
 
-No existing table is touched, altered, or dropped — this migration only
-CREATEs the new ActivityLog table and its indexes/foreign key. It is safe
-to run against a database that already has real data in it.
+1. 20260818190900_add_activity_log — creates the new ActivityLog table
+   only. Adds nothing to any existing table.
+2. 20260818200000_add_project_publish_fields — adds 6 new columns to
+   Project (published, order, projectUrl, clientName, seoTitle,
+   seoDescription). Backfills published=true for every row where
+   status='COMPLETED' — the only data-mutating statement, and it only
+   sets the new column.
+3. 20260818210000_add_service_approach_and_faq_link — adds `approach` to
+   Service, and a nullable `serviceId` to FAQ (every existing FAQ row
+   becomes serviceId=NULL, i.e. stays a global FAQ exactly as before).
+
+All three are additive only — no existing column is altered or dropped,
+no existing row is deleted. Safe to run against a database with real data.
 
 ------------------------------------------------------------
-WHAT CHANGED AND WHY (PRD Phase B: dashboard analytics, reports,
-notifications, profile, home navigation, activity)
+PHASE-BY-PHASE SUMMARY
 ------------------------------------------------------------
 
-1) ActivityLog model + lib/activity-log.ts + migration
-   New model for the operational "what's happening on the platform" feed
-   (PRD section 22) — separate from the existing SUPER_ADMIN-only AuditLog
-   (security/admin-action trail, section 21). logActivity() mirrors the
-   existing logAudit() helper: never throws, logs to console on failure
-   instead of rolling back the action it's describing.
+PHASE A — Security Audit
+- Removed unauthenticated public POST from /api/projects and /api/blog.
+- Deleted 4 dead, unauthenticated files (zero references anywhere).
+- Added the missing auth+role check to GET /api/dashboard/settings.
+- Fixed a broken Prisma include that made every GET /api/orders/[id] 500.
+- Root-caused and fixed "Create Project POST not working": slug was
+  required but the dashboard form always sends '', so validation failed
+  before the server's slugify() fallback could run (fixed the identical
+  latent Blog bug too).
 
-2) Instrumented with logActivity() at 7 points, matching the exact examples
-   PRD section 22 lists:
-   - app/api/contact/route.ts (POST)        -> "lead.created"
-   - app/api/dashboard/offers/route.ts (POST) -> "offer.created"
-   - app/api/offers/[id]/accept/route.ts    -> "offer.accepted" +
-     "order.created" (the accept endpoint creates the Order in the same
-     transaction, so both events are logged together)
-   - app/api/conversations/[id]/messages/route.ts (POST) -> "message.sent"
-   - app/api/dashboard/blog/[id]/route.ts (PUT) -> "blog.published" (only
-     logged on the DRAFT/SCHEDULED -> PUBLISHED transition, using the
-     wasPublished/isPublishing flags the route already computed — not
-     logged on every edit, to avoid noise)
-   - app/api/dashboard/projects/[id]/route.ts (PUT) -> "project.updated"
-   - app/api/dashboard/services/[id]/route.ts (PATCH) -> "service.statusChanged"
-   Note: the PRD's "testimonial submitted" example was NOT instrumented —
-   there is currently no public testimonial-submission API route in this
-   repo (only the dashboard/admin-created path exists), so that flow
-   doesn't exist yet to log. Building it is Phase G (Testimonials/FAQ/
-   Newsletter) work, not Phase B.
+PHASE B — Dashboard Core
+- New ActivityLog model + logActivity() helper, instrumented at 7
+  mutation points (lead created, offer created/accepted, order created,
+  message sent, blog published, project updated, service status changed).
+- Replaced the 100%-mocked /dashboard/activity and /dashboard/reports
+  pages with real Prisma-backed data.
+- Notification bell now polls every 30s + revalidates on focus.
+- Added a "View Website" sidebar link; caught and fixed a near-miss that
+  would have deleted the sidebar's real, working Logout button.
 
-3) app/api/dashboard/activity/route.ts + app/dashboard/activity/page.tsx
-   The Activity Logs dashboard page was previously 100% hardcoded mock data
-   (mockActivities array, no fetch call at all). Replaced with a real
-   ActivityLog query (latest 50, today's count), gated to SUPER_ADMIN/ADMIN
-   via requirePermission('dashboard.viewAgencyOverview') — the same
-   capability already gating /dashboard/analytics, matching this page's nav
-   role gate.
+PHASE C — Projects
+- Decoupled publish visibility (new `published` boolean) from the
+  existing `status` lifecycle enum — a project could previously never be
+  a private draft once COMPLETED, or shown publicly while IN_PROGRESS.
+- Added order, projectUrl, clientName, seoTitle, seoDescription.
+- Built app/portfolio/[slug]/page.tsx — a public project detail page
+  that did not exist before at all.
+- Added published projects to the sitemap.
 
-4) app/api/dashboard/reports/route.ts + app/dashboard/reports/page.tsx
-   The System Reports page was previously 100% hardcoded fake numbers
-   ($678K revenue, 1.2M page views, etc. — static literals, no fetch call).
-   Replaced with real Order/Project/Blog/Newsletter/Contact-derived figures
-   for the current calendar year: revenue by month (from PAID orders),
-   projects created per quarter, lead sources (Contact.source), published
-   blog count, active newsletter subscriber count, new CLIENT signups vs.
-   last year. Removed the "Export CSV" / "Generate Report" buttons that had
-   no onClick handler in the original — decorative dead buttons, not real
-   functionality; PRD explicitly says not to fake results.
-   NOTE: "Page Views" and "Conversions" from the old mock data are GONE —
-   this app has no visitor-tracking pipeline (no pageview capture), so
-   those numbers were always fabricated. Replaced with real metrics
-   (Published Posts, Newsletter Subscribers) instead of inventing traffic
-   data. If real web analytics are wanted later, that's a GA4/Clarity
-   integration (PRD section 18), not something Reports can compute itself.
-
-5) hooks/use-dashboard-data.ts + components/dashboard/notification-bell.tsx
-   PRD section 23: unread notification count must not go stale during a
-   live session. The hook already supported revalidateOnFocus but
-   NotificationBell wasn't passing it, and there was no polling at all — a
-   notification created while the dashboard tab was open and focused would
-   never appear until a manual mark-read/mark-all-read refetch. Added an
-   opt-in pollIntervalMs option (only polls while the tab is visible, via
-   document.visibilityState) and wired NotificationBell to
-   revalidateOnFocus:true + pollIntervalMs:30000.
-
-6) constants/dashboard-nav.ts + components/dashboard/dashboard-sidebar.tsx
-   PRD section 25: added a "View Website" link (Home icon) to '/' in the
-   dashboard sidebar's account-items section.
-   IMPORTANT correction made during this same change: the live sidebar
-   component is components/dashboard/dashboard-shell.tsx (wired into
-   app/dashboard/layout.tsx), NOT dashboard-sidebar.tsx, which is dead/
-   unused code — nothing imports it. dashboard-shell.tsx already worked
-   around a real bug: dashboardAccountItems' Logout entry points to
-   '/api/auth/logout', a route that does not exist; dashboard-shell.tsx
-   special-cases that exact href string to call next-auth's signOut()
-   instead of navigating there. Our first pass at this file mistakenly
-   removed the Logout entry from dashboardAccountItems entirely, which
-   would have deleted the sidebar's real signOut button in production. That
-   was caught and reverted before finalizing — dashboardAccountItems is
-   unchanged apart from adding View Website, and dashboard-shell.tsx (the
-   live file) required no changes at all. dashboard-sidebar.tsx (the dead
-   file) was still fixed to use the same isLogout pattern for consistency,
-   since we had already touched it, but it has zero effect on the running
-   app either way.
+PHASE D — Services
+- Added Service.approach ("Our Approach" section) and FAQ.serviceId
+  (service-specific FAQs, reusing the existing global FAQ model instead
+  of duplicating it).
+- Enforced "FIXED_PRICE requires a price" server-side (was client-only —
+  a direct API call could bypass it before).
+- Wired the homepage FAQ section to real database data — it was 100%
+  hardcoded from constants/faq.ts with zero connection to the FAQ
+  dashboard; that whole dashboard CRUD page had no visible public effect
+  at all until now.
+- Added the two sections PRD explicitly asked for on the service detail
+  page that were missing entirely: service-specific FAQs and Related
+  Services.
+- Built a real, database-driven Services mega-menu in the navbar — it
+  was previously a hardcoded static link with no dropdown whatsoever.
+  Desktop hover/click dropdown (keyboard accessible, closes on outside
+  click/Escape), mobile expandable accordion.
 
 ------------------------------------------------------------
-VERIFICATION PERFORMED IN THIS ENVIRONMENT
+VERIFICATION PERFORMED IN THIS ENVIRONMENT (re-run after every phase)
 ------------------------------------------------------------
-- `npx prisma generate` + `DATABASE_URL=<dummy> npx prisma validate` against
-  the real schema.prisma (with ActivityLog added) — schema is valid.
-- `npx tsc --noEmit` — 0 errors, full repo.
-- `npx eslint` on every changed file — 0 issues.
-- `npx vitest run` — 17/17 existing tests still pass.
-- Confirmed via grep which component actually renders the dashboard sidebar
-  (dashboard-shell.tsx, not dashboard-sidebar.tsx) before finalizing the
-  Home-link/Logout change, after first getting it wrong.
+- `npx prisma generate` + `DATABASE_URL=<dummy> npx prisma validate`
+  against the real schema.prisma with all models/fields from every phase.
+- `npx tsc --noEmit` — 0 errors, full repo, after every phase.
+- `npx eslint` on every changed file — 0 issues (one unescaped-apostrophe
+  lint error was caught and fixed during Phase D before this delivery).
+- `npx vitest run` — 17/17 existing tests pass, unchanged throughout.
 
 NOT performed (no live database or browser in this environment) — please
-verify locally before merging:
-- Actually running `prisma migrate dev`/`deploy` against a real Postgres
-  database and confirming the ActivityLog table is created cleanly.
-- Loading /dashboard/activity and /dashboard/reports as SUPER_ADMIN/ADMIN
-  and confirming real numbers render (will be all-zero/empty on a fresh DB
-  until leads/offers/orders/messages/blog posts/projects/services actually
-  exist).
-- Submitting the public contact form, creating/accepting an offer, sending
-  a dashboard message, and publishing a blog post, then confirming each one
-  produces a new row on /dashboard/activity.
-- Confirming the notification bell's unread badge updates within ~30s of a
-  new notification being created elsewhere, without any manual action.
-- Clicking "View Website" and "Logout" in the dashboard sidebar.
+verify locally before merging, in this order:
+1. Run all three migrations against a real Postgres database.
+2. Submit the dashboard Create Project / Create Blog forms end-to-end.
+3. Load /dashboard/activity and /dashboard/reports as SUPER_ADMIN/ADMIN.
+4. Publish a project and confirm it appears on /portfolio and its
+   /portfolio/[slug] page; confirm a COMPLETED-but-unpublished one does
+   NOT appear, and an IN_PROGRESS-but-published one DOES.
+5. In the Services dashboard, try saving a FIXED_PRICE service with no
+   price via direct API call (e.g. curl/Postman as an authenticated
+   admin) and confirm it's now rejected with 400.
+6. Add a service-scoped FAQ in the dashboard FAQ page and confirm it
+   shows up on that service's /services/[slug] page but NOT on the
+   homepage's global FAQ section, and vice versa for a Global-scoped FAQ.
+7. Load the homepage and hover/click "Services" in the navbar — confirm
+   the dropdown shows real service groups/services from the database,
+   and that it collapses into an accordion on mobile width.
+8. Click "View Website" and "Logout" in the dashboard sidebar; confirm
+   the notification bell's unread badge updates within ~30s automatically.
+
+------------------------------------------------------------
+PUSH STATUS
+------------------------------------------------------------
+This session's GitHub access to ataullahmesbah/hyascka remains read-only —
+`git push` and the GitHub API both return 403 (permission denied, not a
+network error), unchanged since Phase A. Everything above is committed
+locally on branch claude/tmi-repo-zip-update-iwyzlf across 4 commits; this
+ZIP is the delivery mechanism until write access is granted (claude.ai
+Settings -> Connectors, or an org admin enabling write access for this
+repo).
