@@ -1,9 +1,13 @@
-// FILE: app/api/dashboard/users/route.ts
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: app/api/dashboard/users/route.ts
+// ==========================================================
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requirePermission } from '@/lib/dashboard-auth';
 import { canActOnTarget, type Role } from '@/lib/permissions';
+import { logAudit } from '@/lib/audit-log';
 
 // NOTE: Active/Inactive suspension is a real requirement from the RBAC
 // correction phase, but User has no `status` column in the schema yet
@@ -97,6 +101,14 @@ export async function PATCH(req: Request) {
       select: { id: true, name: true, email: true, role: { select: { name: true } } },
     });
 
+    await logAudit({
+      actorId: user.id,
+      action: parsed.data.roleId ? 'user.role_changed' : 'user.updated',
+      targetType: 'User',
+      targetId: id,
+      metadata: { name: parsed.data.name, roleId: parsed.data.roleId },
+    });
+
     return NextResponse.json(updated);
   } catch {
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
@@ -132,6 +144,15 @@ export async function DELETE(req: Request) {
     }
 
     await prisma.user.delete({ where: { id } });
+
+    await logAudit({
+      actorId: user.id,
+      action: 'user.deleted',
+      targetType: 'User',
+      targetId: id,
+      metadata: { email: targetUser.email },
+    });
+
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch {
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });

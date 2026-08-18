@@ -1,4 +1,7 @@
-// FILE: app/checkout/page.tsx
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: app/checkout/page.tsx
+// ==========================================================
 'use client';
 
 import * as React from 'react';
@@ -36,6 +39,7 @@ export default function CheckoutPage() {
     const [notFound, setNotFound] = React.useState(false);
     const [placing, setPlacing] = React.useState(false);
     const [order, setOrder] = React.useState<CreatedOrder | null>(null);
+    const [payingOnline, setPayingOnline] = React.useState(false);
 
     React.useEffect(() => {
         if (!slug) {
@@ -75,6 +79,34 @@ export default function CheckoutPage() {
             toast.error(err instanceof Error ? err.message : 'Unable to place order.');
         } finally {
             setPlacing(false);
+        }
+    };
+
+    const handlePayOnline = async () => {
+        if (!order) return;
+        setPayingOnline(true);
+        try {
+            const res = await fetch('/api/checkout/sslcommerz/init', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId: order.id }),
+            });
+
+            if (res.status === 501) {
+                toast.info('Online payment isn’t enabled yet — our team will reach out to complete payment.');
+                return;
+            }
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body.error ?? 'Unable to start online payment');
+            }
+
+            const { gatewayUrl } = await res.json();
+            window.location.href = gatewayUrl;
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Unable to start online payment.');
+        } finally {
+            setPayingOnline(false);
         }
     };
 
@@ -118,10 +150,14 @@ export default function CheckoutPage() {
                 </div>
                 <h1 className="mt-4 font-display text-xl font-semibold">Order placed — {order.orderNumber}</h1>
                 <p className="mt-2 text-sm text-muted-foreground">
-                    Our team will reach out to complete payment for {order.currency} {Number(order.amount).toLocaleString()}.
-                    You can track this order any time from your dashboard.
+                    Complete payment for {order.currency} {Number(order.amount).toLocaleString()} online, or our team
+                    will reach out to confirm it manually. You can track this order any time from your dashboard.
                 </p>
-                <Button asChild className="mt-6">
+                <Button onClick={handlePayOnline} disabled={payingOnline} className="mt-6 w-full max-w-xs gap-2">
+                    {payingOnline ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Pay Online
+                </Button>
+                <Button asChild variant="outline" className="mt-3 w-full max-w-xs">
                     <Link href="/dashboard/orders">View My Orders</Link>
                 </Button>
             </div>

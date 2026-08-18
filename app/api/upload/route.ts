@@ -1,8 +1,18 @@
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: app/api/upload/route.ts
+// ==========================================================
 import { NextResponse } from 'next/server';
 import { uploadImage } from '@/lib/cloudinary';
+import { requireAuth } from '@/lib/dashboard-auth';
 
 export async function POST(req: Request) {
   try {
+    const user = await requireAuth();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const folder = (formData.get('folder') as string) || 'hyaska';

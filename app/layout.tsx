@@ -1,3 +1,7 @@
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: app/layout.tsx
+// ==========================================================
 import './globals.css';
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
@@ -45,6 +49,34 @@ export const metadata: Metadata = {
   },
 };
 
+// Site-wide Organization + WebSite structured data — helps both
+// traditional search (Google rich results) and AI answer engines
+// (ChatGPT/Perplexity/Google AI Overviews) correctly identify who
+// HYASCKA is and how to search the site, without needing a per-page
+// override. Page-level schema (BlogPosting, etc.) layers on top of this.
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'HYASCKA',
+  url: 'https://hyascka.com',
+  logo: 'https://hyascka.com/logo/logo1.png',
+  description:
+    'HYASCKA builds AI agents, intelligent automation, enterprise software, and high-performance digital experiences for startups and enterprises.',
+  sameAs: [],
+};
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'HYASCKA',
+  url: 'https://hyascka.com',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: 'https://hyascka.com/blog?q={search_term_string}',
+    'query-input': 'required name=search_term_string',
+  },
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -53,6 +85,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var s=localStorage.getItem('theme');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(!s){document.documentElement.classList.toggle('dark',m)}else if(s==='dark'){document.documentElement.classList.add('dark')}else if(s==='light'){document.documentElement.classList.remove('dark')}}catch(e){}})();`,

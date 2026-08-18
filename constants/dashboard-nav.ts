@@ -1,4 +1,7 @@
-// FILE: constants/dashboard-nav.ts
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: constants/dashboard-nav.ts
+// ==========================================================
 import type { LucideIcon } from 'lucide-react';
 import type { Role } from '@/lib/permissions';
 import {
@@ -7,7 +10,6 @@ import {
   Users,
   Shield,
   FolderKanban,
-  Briefcase,
   Wrench,
   FileText,
   FolderTree,
@@ -64,7 +66,6 @@ export const dashboardNavGroups: DashboardNavGroup[] = [
       { label: 'Users', href: '/dashboard/users', icon: Users, roles: ['SUPER_ADMIN', 'ADMIN'] },
       { label: 'Roles', href: '/dashboard/roles', icon: Shield, roles: ['SUPER_ADMIN'] },
       { label: 'Projects', href: '/dashboard/projects', icon: FolderKanban, roles: ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'EDITOR', 'CLIENT'] },
-      { label: 'Portfolio', href: '/dashboard/portfolio', icon: Briefcase, roles: ['SUPER_ADMIN', 'ADMIN', 'EDITOR'] },
       { label: 'Services', href: '/dashboard/services', icon: Wrench, roles: ['SUPER_ADMIN', 'ADMIN'] },
     ],
   },

@@ -1,4 +1,7 @@
-// FILE: prisma/schema.prisma
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: prisma/schema.prisma
+// ==========================================================
 // HYASCKA — Prisma Schema
 // Enterprise-grade schema supporting auth, CMS, CRM, and future expansion.
 
@@ -104,6 +107,7 @@ model User {
   sentMessages           Message[]
   notifications          Notification[]
   sentInvitations        ClientInvitation[]        @relation("InvitationInvitedBy")
+  auditLogs              AuditLog[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -731,4 +735,28 @@ model SiteSettings {
   analyticsId     String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// ─────────────────────────────────────
+// Audit Log — who did what, when
+// ─────────────────────────────────────
+
+// Append-only. Written by lib/audit-log.ts from sensitive dashboard
+// mutations (role changes, deletions, settings/payment updates) — never
+// updated or deleted by application code. actorId is nullable because a
+// handful of write paths (e.g. a public form submission that indirectly
+// triggers a system action) have no authenticated actor.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
 }

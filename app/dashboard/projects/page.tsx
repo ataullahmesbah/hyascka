@@ -1,4 +1,8 @@
 'use client';
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: app/dashboard/projects/page.tsx
+// ==========================================================
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
@@ -40,6 +44,7 @@ import { ErrorState } from '@/components/dashboard/error-state';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { ImageUpload } from '@/components/dashboard/image-upload';
 
 interface Project {
   id: string;
@@ -278,8 +283,13 @@ export default function ProjectsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="image">Image URL</Label>
-                <Input id="image" value={formData.image} onChange={(e) => setFormData({ ...formData, image: e.target.value })} placeholder="https://..." />
+                <Label htmlFor="image">Image</Label>
+                <ImageUpload
+                  value={formData.image}
+                  onChange={(url) => setFormData({ ...formData, image: url })}
+                  folder="hyaska/projects"
+                  label="Project image"
+                />
               </div>
             </div>
             <div className="space-y-2">

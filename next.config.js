@@ -1,9 +1,12 @@
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: next.config.js
+// ==========================================================
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
+  images: {
+    remotePatterns: [{ protocol: 'https', hostname: 'res.cloudinary.com' }],
   },
-  images: { unoptimized: true },
   experimental: {
     serverActions: true,
   },

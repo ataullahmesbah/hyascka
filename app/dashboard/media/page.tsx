@@ -1,8 +1,12 @@
 'use client';
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: app/dashboard/media/page.tsx
+// ==========================================================
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { Image, Upload, MoreHorizontal, Trash2, Copy, Eye, Search, Folder } from 'lucide-react';
+import { Image as ImageIcon, Upload, MoreHorizontal, Trash2, Copy, Eye, Search, Folder } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,9 +54,9 @@ export default function MediaPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard title="Total Files" value={mockMedia.length} icon={Image} accent="primary" />
+        <StatCard title="Total Files" value={mockMedia.length} icon={ImageIcon} accent="primary" />
         <StatCard title="Folders" value={mockFolders.length - 1} icon={Folder} accent="accent" />
-        <StatCard title="Storage Used" value="124 MB" icon={Image} accent="success" />
+        <StatCard title="Storage Used" value="124 MB" icon={ImageIcon} accent="success" />
       </div>
 
       <Card>
@@ -67,9 +71,8 @@ export default function MediaPage() {
                 <button
                   key={folder}
                   onClick={() => setActiveFolder(folder)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                    activeFolder === folder ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${activeFolder === folder ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                    }`}
                 >
                   {folder}
                 </button>
@@ -87,7 +90,7 @@ export default function MediaPage() {
                 className="group relative overflow-hidden rounded-xl border border-border"
               >
                 <div className={`relative flex h-28 items-center justify-center bg-gradient-to-br ${media.gradient}`}>
-                  <Image className="h-8 w-8 text-foreground/30" />
+                  <ImageIcon className="h-8 w-8 text-foreground/30" />
                   <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                     <Button variant="secondary" size="icon" className="h-8 w-8"><Eye className="h-3.5 w-3.5" /></Button>
                     <Button variant="secondary" size="icon" className="h-8 w-8"><Copy className="h-3.5 w-3.5" /></Button>

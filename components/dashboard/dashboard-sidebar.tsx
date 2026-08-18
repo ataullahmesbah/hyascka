@@ -1,4 +1,8 @@
 'use client';
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: components/dashboard/dashboard-sidebar.tsx
+// ==========================================================
 
 import * as React from 'react';
 import Link from 'next/link';
@@ -6,13 +10,13 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { dashboardNavGroups, dashboardAccountItems } from '@/constants/dashboard-nav';
+import { dashboardNavGroups, dashboardAccountItems, type DashboardRole } from '@/constants/dashboard-nav';
 import { Logo } from './logo';
 
 interface DashboardSidebarProps {
   open: boolean;
   onClose: () => void;
-  userRole: string;
+  userRole: DashboardRole;
 }
 
 export function DashboardSidebar({ open, onClose, userRole }: DashboardSidebarProps) {

@@ -1,10 +1,16 @@
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: app/blog/page.tsx
+// ==========================================================
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { PageHero } from '@/components/page-hero';
 import { CTASection } from '@/components/cta-section';
 import { Reveal } from '@/components/reveal';
 import { ArrowRight, ArrowUpRight, Clock, User } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import cloudinaryImageLoader from '@/lib/cloudinary-image-loader';
 
 export const metadata: Metadata = {
   title: 'Blog — HYASCKA',
@@ -114,9 +120,15 @@ export default async function BlogPage() {
                       </span>
                     </div>
                     {featuredPost.featuredImage && (
-                      <div className="flex h-40 w-full shrink-0 overflow-hidden rounded-2xl lg:h-48 lg:w-72">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={featuredPost.featuredImage} alt={featuredPost.title} className="h-full w-full object-cover" />
+                      <div className="relative flex h-40 w-full shrink-0 overflow-hidden rounded-2xl lg:h-48 lg:w-72">
+                        <Image
+                          src={featuredPost.featuredImage}
+                          alt={featuredPost.title}
+                          fill
+                          sizes="(max-width: 1024px) 100vw, 288px"
+                          loader={cloudinaryImageLoader}
+                          className="object-cover"
+                        />
                       </div>
                     )}
                   </Link>
@@ -137,9 +149,15 @@ export default async function BlogPage() {
                       className="group flex h-full flex-col gap-4 rounded-2xl border border-border bg-card p-6 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-soft-lg"
                     >
                       {p.featuredImage ? (
-                        <div className="flex h-32 overflow-hidden rounded-xl">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={p.featuredImage} alt={p.title} className="h-full w-full object-cover" />
+                        <div className="relative flex h-32 overflow-hidden rounded-xl">
+                          <Image
+                            src={p.featuredImage}
+                            alt={p.title}
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            loader={cloudinaryImageLoader}
+                            className="object-cover"
+                          />
                         </div>
                       ) : (
                         <div className="flex h-32 items-center justify-center rounded-xl bg-gradient-to-br from-primary/8 to-accent/8">

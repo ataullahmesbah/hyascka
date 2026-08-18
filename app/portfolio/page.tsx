@@ -1,10 +1,16 @@
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: app/portfolio/page.tsx
+// ==========================================================
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import { PageHero } from '@/components/page-hero';
 import { CTASection } from '@/components/cta-section';
 import { Reveal } from '@/components/reveal';
 import { SectionHeader } from '@/components/section-header';
 import { TrendingUp, ArrowUpRight } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import cloudinaryImageLoader from '@/lib/cloudinary-image-loader';
 
 export const metadata: Metadata = {
   title: 'Portfolio — HYASCKA',
@@ -59,8 +65,14 @@ export default async function PortfolioPage() {
                   <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-500 hover:-translate-y-1 hover:border-primary/40 hover:shadow-soft-lg">
                     <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden border-b border-border/60 bg-surface-secondary p-6">
                       {p.image ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={p.image} alt={p.title} className="absolute inset-0 h-full w-full object-cover" />
+                        <Image
+                          src={p.image}
+                          alt={p.title}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          loader={cloudinaryImageLoader}
+                          className="object-cover"
+                        />
                       ) : (
                         <>
                           <div className="pointer-events-none absolute inset-0 bg-grid opacity-30" />

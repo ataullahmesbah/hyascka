@@ -1,4 +1,7 @@
-// FILE: app/dashboard/services/page.tsx
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: app/dashboard/services/page.tsx
+// ==========================================================
 'use client';
 
 import * as React from 'react';
@@ -452,7 +455,7 @@ export default function ServicesPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Delete Service?</DialogTitle>
-            <DialogDescription>Services with order history can't be deleted — archive them instead.</DialogDescription>
+            <DialogDescription>Services with order history can&apos;t be deleted — archive them instead.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>

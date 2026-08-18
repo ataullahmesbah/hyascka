@@ -1,4 +1,8 @@
 'use client';
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: app/forgot-password/page.tsx
+// ==========================================================
 
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -49,7 +53,7 @@ export default function ForgotPasswordPage() {
           <CheckCircle2 className="mx-auto h-12 w-12 text-success" />
           <h1 className="mt-4 font-display text-xl font-semibold">Check your email</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            If an account exists with that email, we've sent a password reset link.
+            If an account exists with that email, we&apos;ve sent a password reset link.
           </p>
           <Link href="/login" className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
             Back to login
@@ -66,7 +70,7 @@ export default function ForgotPasswordPage() {
           <div className="mb-6 text-center">
             <h1 className="font-display text-2xl font-semibold tracking-tight">Forgot password?</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Enter your email and we'll send you a reset link.
+              Enter your email and we&apos;ll send you a reset link.
             </p>
           </div>
 

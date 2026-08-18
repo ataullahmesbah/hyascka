@@ -1,3 +1,7 @@
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: app/unauthorized/page.tsx
+// ==========================================================
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ShieldAlert, Home } from 'lucide-react';
@@ -20,7 +24,7 @@ export default function UnauthorizedPage() {
           Access Denied
         </h1>
         <p className="max-w-md text-base leading-relaxed text-muted-foreground text-pretty">
-          You don't have permission to access this page. Please contact an administrator if you
+          You don&apos;t have permission to access this page. Please contact an administrator if you
           believe this is an error.
         </p>
       </div>

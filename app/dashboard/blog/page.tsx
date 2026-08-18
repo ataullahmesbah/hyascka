@@ -1,4 +1,8 @@
 'use client';
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: app/dashboard/blog/page.tsx
+// ==========================================================
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
@@ -25,6 +29,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ImageUpload } from '@/components/dashboard/image-upload';
 import {
   Select,
   SelectContent,
@@ -343,8 +348,13 @@ export default function BlogPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="featuredImage">Cover Image URL</Label>
-              <Input id="featuredImage" value={formData.featuredImage} onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })} placeholder="https://..." />
+              <Label htmlFor="featuredImage">Cover Image</Label>
+              <ImageUpload
+                value={formData.featuredImage}
+                onChange={(url) => setFormData({ ...formData, featuredImage: url })}
+                folder="hyaska/blog"
+                label="Cover image"
+              />
             </div>
           </div>
           <DialogFooter>

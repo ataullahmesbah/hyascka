@@ -1,4 +1,7 @@
-// FILE: app/api/conversations/route.ts
+// ==========================================================
+// REPLACE EXISTING FILE
+// LOCATION: app/api/conversations/route.ts
+// ==========================================================
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
@@ -24,7 +27,7 @@ export async function GET() {
         const readMap = new Map(participations.map((p) => [p.conversationId, p.lastReadAt]));
 
         const conversations = await prisma.conversation.findMany({
-            where: canSeeAll ? {} : { id: { in: [...readMap.keys()] } },
+            where: canSeeAll ? {} : { id: { in: Array.from(readMap.keys()) } },
             include: {
                 contact: { select: { id: true, name: true, email: true } },
                 participants: { include: { user: { select: { id: true, name: true, email: true } } } },
